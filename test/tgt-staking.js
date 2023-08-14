@@ -65,7 +65,8 @@ describe.only("TGT Staking", function () {
             carol,
             tgtMaker,
             penaltyCollector,
-            USDC
+            USDC,
+            treasury
         };
     }
 
@@ -964,6 +965,51 @@ describe.only("TGT Staking", function () {
             expect(await tgtStaking.pendingReward(carol.address, rewardToken.address)).to.be.equal(utils.parseEther("0"));
 
         }).timeout(1000000);
+
+        it("should claim funds for the treasury corresponding to the treasury fee", async function () {
+            const {
+                tgtStaking,
+                tgt,
+                rewardToken,
+                alice,
+                dev,
+                bob,
+                carol,
+                tgtMaker,
+                treasury
+            } = await loadFixture(deployFixture);
+
+            await tgtStaking.connect(alice).deposit(utils.parseEther("100"));
+            await tgtStaking.connect(bob).deposit(utils.parseEther("100"));
+            await tgtStaking.connect(carol).deposit(utils.parseEther("100"));
+            await rewardToken.connect(tgtMaker).transfer(tgtStaking.address, utils.parseEther("100"));
+            await increase(86400 * 7);
+            expect(await rewardToken.balanceOf(treasury.address)).to.be.equal(0);
+            expect(await tgtStaking.treasuryFeePercentage()).to.be.equal(utils.parseEther("0.5"));
+            expect(await tgtStaking.treasury()).to.be.equal(treasury.address);
+
+            await tgtStaking.connect(treasury).treasuryClaim();
+            expect(await rewardToken.balanceOf(treasury.address)).to.be.equal(utils.parseEther("50"));
+
+        });
+
+        it("should be able to update treasury fee and treasury address", async function () {
+            const {
+                tgtStaking,
+                tgt,
+                rewardToken,
+                alice,
+                tgtMaker,
+                treasury
+            } = await loadFixture(deployFixture);
+
+            await tgtStaking.connect(treasury).updateTreasuryPercentage(utils.parseEther("0.1"));
+            expect(await tgtStaking.treasuryFeePercentage()).to.be.equal(utils.parseEther("0.1"));
+
+            await tgtStaking.connect(treasury).updateTreasury(alice.address);
+            expect(await tgtStaking.treasury()).to.be.equal(alice.address);
+
+        });
 
 
     });

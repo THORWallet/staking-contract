@@ -54,7 +54,7 @@ contract TGTStaking is Ownable {
     address public feeCollector;
 
     address public treasury;
-    uint256 public treasuryFeePercent;
+    uint256 public treasuryFeePercentage;
     mapping(IERC20 => uint256) public treasuryRewardDebt;
 
     /// @notice The deposit fee, scaled to `DEPOSIT_FEE_PERCENT_PRECISION`
@@ -108,20 +108,20 @@ contract TGTStaking is Ownable {
         address _feeCollector,
         uint256 _depositFeePercent,
         address _treasury,
-        uint256 _treasuryFeePercent
+        uint256 _treasuryFeePercentage
     ) {
         require(address(_rewardToken) != address(0), "TGTStaking: reward token can't be address(0)");
         require(address(_tgt) != address(0), "TGTStaking: tgt can't be address(0)");
         require(_feeCollector != address(0), "TGTStaking: fee collector can't be address(0)");
         require(_treasury != address(0), "TGTStaking: treasury can't be address(0)");
-        require(_treasuryFeePercent <= 5e17, "TGTStaking: max treasury fee can't be greater than 50%");
+        require(_treasuryFeePercentage <= 5e17, "TGTStaking: max treasury fee can't be greater than 50%");
         require(_depositFeePercent <= 5e17, "TGTStaking: max deposit fee can't be greater than 50%");
 
         tgt = _tgt;
         depositFeePercent = _depositFeePercent;
         feeCollector = _feeCollector;
         treasury = _treasury;
-        treasuryFeePercent = _treasuryFeePercent;
+        treasuryFeePercentage = _treasuryFeePercentage;
 
         isRewardToken[_rewardToken] = true;
         rewardTokens.push(_rewardToken);
@@ -323,29 +323,34 @@ contract TGTStaking is Ownable {
     }
 
     function pendingTreasuryReward(IERC20 _token) external view returns (uint256) {
-        return (_token.balanceOf(address(this)) * treasuryFeePercent) / 1e18 - treasuryRewardDebt[_token];
+        return (_token.balanceOf(address(this)) * treasuryFeePercentage) / 1e18 - treasuryRewardDebt[_token];
     }
 
-    function treasuryClaim() external onlyOwner {
+    function treasuryClaim() external {
+        require(owner() == _msgSender() || treasury == _msgSender(), "Caller is not the owner or treasury");
+
         uint256 _len = rewardTokens.length;
         for (uint256 i; i < _len; i++) {
             IERC20 _token = rewardTokens[i];
             uint256 _previousRewardDebt = treasuryRewardDebt[_token];
-            treasuryRewardDebt[_token] = (_token.balanceOf(address(this)) * treasuryFeePercent) / 1e18;
-            uint256 _balance = (_token.balanceOf(address(this)) * treasuryFeePercent) / 1e18 - _previousRewardDebt;
+            treasuryRewardDebt[_token] = (_token.balanceOf(address(this)) * treasuryFeePercentage) / 1e18;
+            uint256 _balance = (_token.balanceOf(address(this)) * treasuryFeePercentage) / 1e18 - _previousRewardDebt;
             if (_balance > 0) {
-                safeTokenTransfer(_token, treasury, _balance);
+                _token.safeTransfer(treasury, _balance);
             }
         }
     }
 
-    function updateTreasury(address _treasury) external onlyOwner {
+    function updateTreasury(address _treasury) external {
+        require(owner() == _msgSender() || treasury == _msgSender(), "Caller is not the owner or treasury");
         treasury = _treasury;
     }
 
-    function updateTreasuryPercentage(uint256 _treasuryFeePercent) external onlyOwner {
-        require(_treasuryFeePercent <= 5e17, "TGTStaking: max treasury fee can't be greater than 50%");
-        treasuryFeePercent = _treasuryFeePercent;
+    function updateTreasuryPercentage(uint256 _treasuryFeePercentage) external {
+        require(owner() == _msgSender() || treasury == _msgSender(), "Caller is not the owner or treasury");
+
+        require(_treasuryFeePercentage <= 5e17, "TGTStaking: max treasury fee can't be greater than 50%");
+        treasuryFeePercentage = _treasuryFeePercentage;
     }
 
     /**
@@ -432,7 +437,7 @@ contract TGTStaking is Ownable {
             return (75e16 + (timeDiff / (30 days * 6)));
         }
         else if (timeDiff > 7 days && timeDiff < (30 days * 6)) {
-            return (5e17 + (timeDiff / 7 days ));
+            return (5e17 + (timeDiff / 7 days));
         }
         else if (timeDiff < 7 days && timeDiff > 0) {
             return 0;
