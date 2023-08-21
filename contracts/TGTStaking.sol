@@ -40,7 +40,7 @@ contract TGTStaking is Ownable {
          */
     }
 
-    IERC20 public tgt;
+    IERC20 public immutable tgt;
 
     /// @dev Internal balance of TGT, this gets updated on user deposits / withdrawals
     /// this allows to reward users with TGT
@@ -60,14 +60,14 @@ contract TGTStaking is Ownable {
     /// @notice The deposit fee, scaled to `DEPOSIT_FEE_PERCENT_PRECISION`
     uint256 public depositFeePercent;
     /// @notice The precision of `depositFeePercent`
-    uint256 public DEPOSIT_FEE_PERCENT_PRECISION;
+    uint256 public constant DEPOSIT_FEE_PERCENT_PRECISION = 1e18;
 
     /// @notice Accumulated `token` rewards per share, scaled to `ACC_REWARD_PER_SHARE_PRECISION`
     mapping(IERC20 => uint256) public accRewardPerShare;
     /// @notice The precision of `accRewardPerShare`
-    uint256 public ACC_REWARD_PER_SHARE_PRECISION;
+    uint256 public constant ACC_REWARD_PER_SHARE_PRECISION = 1e24;
 
-    uint256 public MULTIPLIER_PRECISION = 1e18;
+    uint256 public constant MULTIPLIER_PRECISION = 1e18;
 
     /// @dev Info of each user that stakes TGT
     mapping(address => UserInfo) private userInfo;
@@ -125,8 +125,6 @@ contract TGTStaking is Ownable {
 
         isRewardToken[_rewardToken] = true;
         rewardTokens.push(_rewardToken);
-        DEPOSIT_FEE_PERCENT_PRECISION = 1e18;
-        ACC_REWARD_PER_SHARE_PRECISION = 1e24;
     }
 
     /**
@@ -135,9 +133,7 @@ contract TGTStaking is Ownable {
      */
     function deposit(uint256 _amount) external {
         UserInfo storage user = userInfo[_msgSender()];
-        if (_amount > 0) {
 
-        }
         uint256 _fee = _amount * depositFeePercent / DEPOSIT_FEE_PERCENT_PRECISION;
         uint256 _amountMinusFee = _amount - _fee;
 
@@ -220,6 +216,7 @@ contract TGTStaking is Ownable {
         updateReward(_rewardToken);
         isRewardToken[_rewardToken] = false;
         uint256 _len = rewardTokens.length;
+        lastRewardBalance[_rewardToken] = 0;
         for (uint256 i; i < _len; i++) {
             if (rewardTokens[i] == _rewardToken) {
                 rewardTokens[i] = rewardTokens[_len - 1];
@@ -328,12 +325,16 @@ contract TGTStaking is Ownable {
 
     function treasuryClaim() external {
         require(owner() == _msgSender() || treasury == _msgSender(), "Caller is not the owner or treasury");
+        uint256 _totalTgt = internalTgtBalance;
 
         uint256 _len = rewardTokens.length;
         for (uint256 i; i < _len; i++) {
             IERC20 _token = rewardTokens[i];
             uint256 _previousRewardDebt = treasuryRewardDebt[_token];
-            treasuryRewardDebt[_token] = (_token.balanceOf(address(this)) * treasuryFeePercentage) / 1e18;
+            uint256 _currRewardBalance = _token.balanceOf(address(this));
+            uint256 _rewardBalance = _token == tgt ? _currRewardBalance - _totalTgt : _currRewardBalance;
+
+            treasuryRewardDebt[_token] = (_rewardBalance * treasuryFeePercentage) / 1e18;
             uint256 _balance = (_token.balanceOf(address(this)) * treasuryFeePercentage) / 1e18 - _previousRewardDebt;
             if (_balance > 0) {
                 _token.safeTransfer(treasury, _balance);
@@ -367,6 +368,7 @@ contract TGTStaking is Ownable {
         for (uint256 i; i < _len; i++) {
             IERC20 _token = rewardTokens[i];
             user.rewardDebt[_token] = 0;
+            user.lastRewardDebtMultiplier[_token] = 0;
         }
         internalTgtBalance = internalTgtBalance - _amount;
         tgt.safeTransfer(_msgSender(), _amount);
@@ -387,17 +389,14 @@ contract TGTStaking is Ownable {
 
         // Did TGTStaking receive any token
         if (_rewardBalance == lastRewardBalance[_token] || _totalTgt == 0) {
-//            console.log("no reward balance change");
             return;
         }
 
         uint256 _accruedReward = _rewardBalance - lastRewardBalance[_token];
-//        console.log("accRewardPerShare before update", accRewardPerShare[_token]);
-//        console.log("_accruedReward", _accruedReward);
-//        console.log("_totalTgt", _totalTgt);
+
         accRewardPerShare[_token] = accRewardPerShare[_token] + (
             _accruedReward * ACC_REWARD_PER_SHARE_PRECISION / _totalTgt);
-//        console.log("accRewardPerShare after update", accRewardPerShare[_token]);
+
         lastRewardBalance[_token] = _rewardBalance;
     }
 
@@ -438,9 +437,6 @@ contract TGTStaking is Ownable {
         }
         else if (timeDiff > 7 days && timeDiff < (30 days * 6)) {
             return (5e17 + (timeDiff / 7 days));
-        }
-        else if (timeDiff < 7 days && timeDiff > 0) {
-            return 0;
         }
         return 0;
     }
