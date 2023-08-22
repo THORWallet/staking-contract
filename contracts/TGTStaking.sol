@@ -25,7 +25,6 @@ contract TGTStaking is Ownable {
         uint256 amount;
         uint256 depositTimestamp;
         mapping(IERC20 => uint256) rewardDebt;
-        mapping(IERC20 => uint256) lastRewardDebtMultiplier;
         /**
          * @notice We do some fancy math here. Basically, any point in time, the amount of TGTs
          * entitled to a user but is pending to be distributed is:
@@ -148,20 +147,6 @@ contract TGTStaking is Ownable {
         for (uint256 i; i < _len; i++) {
             IERC20 _token = rewardTokens[i];
             updateReward(_token);
-
-            uint256 _previousRewardDebt = user.rewardDebt[_token];
-            uint256 stakingMultiplier = getStakingMultiplier(_msgSender());
-            user.rewardDebt[_token] = (stakingMultiplier * (_newAmount * accRewardPerShare[_token] / ACC_REWARD_PER_SHARE_PRECISION)) / MULTIPLIER_PRECISION;
-//            console.log("rewardDebt after: ", user.rewardDebt[_token]);
-
-            if (_previousAmount != 0) {
-                uint256 _pending = (stakingMultiplier * (_previousAmount * accRewardPerShare[_token] / ACC_REWARD_PER_SHARE_PRECISION) / MULTIPLIER_PRECISION - _previousRewardDebt);
-//                console.log("deposit pending", _pending);
-                if (_pending != 0) {
-                    safeTokenTransfer(_token, _msgSender(), _pending);
-                    emit ClaimReward(_msgSender(), address(_token), _pending);
-                }
-            }
         }
 
         internalTgtBalance = internalTgtBalance + _amountMinusFee;
@@ -251,22 +236,16 @@ contract TGTStaking is Ownable {
         uint256 _accRewardTokenPerShare = accRewardPerShare[_token];
 
         uint256 _currRewardBalance = _token.balanceOf(address(this));
-//        console.log("_totalTgt", _totalTgt);
         uint256 _rewardBalance = _token == tgt ? _currRewardBalance - _totalTgt : _currRewardBalance;
-//        console.log("pending#_rewardBalance", _rewardBalance);
-//        console.log("lastRewardBalance[_token]", lastRewardBalance[_token]);
-//        console.log("_totalTgt", _totalTgt);
+
         if (_rewardBalance != lastRewardBalance[_token] && _totalTgt != 0) {
-            uint256 _accruedReward = _rewardBalance - lastRewardBalance[_token]; // 175 - 25
-//            console.log("_accruedReward", _accruedReward);
-//            console.log("_accRewardTokenPerShare", _accRewardTokenPerShare);
+            uint256 _accruedReward = _rewardBalance - lastRewardBalance[_token];
 
             _accRewardTokenPerShare = _accRewardTokenPerShare + (
                 _accruedReward * ACC_REWARD_PER_SHARE_PRECISION / _totalTgt
             );
         }
-//        console.log("_accRewardTokenPerShare", _accRewardTokenPerShare);
-//        console.log("pr(_user)", (getStakingMultiplier(_user) * (user.amount * _accRewardTokenPerShare / ACC_REWARD_PER_SHARE_PRECISION) / MULTIPLIER_PRECISION - user.rewardDebt[_token]));
+
         return (getStakingMultiplier(_user) * (user.amount * _accRewardTokenPerShare / ACC_REWARD_PER_SHARE_PRECISION) / MULTIPLIER_PRECISION - user.rewardDebt[_token]);
     }
 
@@ -286,23 +265,11 @@ contract TGTStaking is Ownable {
             for (uint256 i; i < _len; i++) {
                 IERC20 _token = rewardTokens[i];
                 updateReward(_token);
-//                console.log("rewardDebt before: ", user.rewardDebt[_token]);
 
                 uint256 stakingMultiplier = getStakingMultiplier(_msgSender());
-                if (stakingMultiplier > user.lastRewardDebtMultiplier[_token]) {
-                    user.rewardDebt[_token] = stakingMultiplier * user.rewardDebt[_token] / MULTIPLIER_PRECISION;
-                }
-//                console.log("rewardDebt before 2: ", user.rewardDebt[_token]);
-//                console.log("getStakingMultiplier", stakingMultiplier);
                 uint256 _pending = (stakingMultiplier * _previousAmount * accRewardPerShare[_token] / ACC_REWARD_PER_SHARE_PRECISION) / MULTIPLIER_PRECISION - user.rewardDebt[_token];
                 user.rewardDebt[_token] = (stakingMultiplier * _newAmount * accRewardPerShare[_token] / ACC_REWARD_PER_SHARE_PRECISION) / MULTIPLIER_PRECISION;
-                user.lastRewardDebtMultiplier[_token] = stakingMultiplier;
-//                console.log("getStakingMultiplier", getStakingMultiplier(_msgSender()));
-//                console.log("previousAmount", _previousAmount);
-//                console.log("accRewardPerShare", accRewardPerShare[_token]);
-//                console.log("ACC_REWARD_PER_SHARE_PRECISION", ACC_REWARD_PER_SHARE_PRECISION);
-//                console.log("rewardDebt after: ", user.rewardDebt[_token]);
-//                console.log("pending", _pending);
+
                 if (_pending != 0) {
                     safeTokenTransfer(_token, _msgSender(), _pending);
                     emit ClaimReward(_msgSender(), address(_token), _pending);
@@ -368,7 +335,6 @@ contract TGTStaking is Ownable {
         for (uint256 i; i < _len; i++) {
             IERC20 _token = rewardTokens[i];
             user.rewardDebt[_token] = 0;
-            user.lastRewardDebtMultiplier[_token] = 0;
         }
         internalTgtBalance = internalTgtBalance - _amount;
         tgt.safeTransfer(_msgSender(), _amount);
