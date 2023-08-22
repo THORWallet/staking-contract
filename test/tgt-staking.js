@@ -570,7 +570,7 @@ describe.only("TGT Staking", function () {
             await tgtStaking.removeRewardToken(usdc.address);
         });
 
-        it.only("rewardDebt should be updated as expected, alice deposits before last reward is sent", async function () {
+        it("rewardDebt should be updated as expected, alice deposits before last reward is sent", async function () {
 
             const {
                 tgtStaking,
