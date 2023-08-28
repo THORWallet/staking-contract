@@ -396,12 +396,12 @@ contract TGTStaking is Ownable {
             return 0;
         }
         uint256 timeDiff = (block.timestamp - user.depositTimestamp);
-        if (timeDiff > 365 days) {
+        if (timeDiff >= 365 days) {
             return 1e18;
-        } else if (timeDiff > (30 days * 6) && timeDiff < 365 days) {
+        } else if (timeDiff >= (30 days * 6) && timeDiff < 365 days) {
             return (75e16 + (timeDiff / (30 days * 6)));
         }
-        else if (timeDiff > 7 days && timeDiff < (30 days * 6)) {
+        else if (timeDiff >= 7 days && timeDiff < (30 days * 6)) {
             return (5e17 + (timeDiff / 7 days));
         }
         return 0;
