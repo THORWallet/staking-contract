@@ -396,15 +396,7 @@ contract TGTStaking is Ownable {
             return 0;
         }
         uint256 timeDiff = block.timestamp - user.depositTimestamp;
-        console.log("timeDiff: %s", timeDiff);
-        console.log("7 days: ", 7 days);
-        console.log("how much percent is 33 in 99", calculatePercentage(33, 99));
-        console.log("how much percent is 9 in 999", calculatePercentage(9, 999));
-        console.log("20 percent of 500", calculatePart(500, 2000));
-        console.log("50 percent of 25e16", calculatePart(25e16, 5000));
 
-        console.log("calculatePercentage %s", calculatePercentage(timeDiff, 30 days * 6));
-        console.log("calculatePart ", calculatePart(25e16, calculatePercentage(timeDiff, 30 days * 6)));
         if (timeDiff >= 365 days) {
             return 1e18;
         } else if (timeDiff >= (30 days * 6) && timeDiff < 365 days) {
@@ -423,7 +415,6 @@ contract TGTStaking is Ownable {
     }
 
     function calculatePart(uint256 amount, uint256 bps) public pure returns (uint256) {
-        require((amount * bps) >= 10_000);
         return amount * bps / 10_000;
     }
 

@@ -153,9 +153,7 @@ describe.only("TGT Staking", function () {
                 rewardToken,
                 alice,
                 tgtMaker
-            } = await loadFixture(
-                deployFixture,
-            );
+            } = await loadFixture(deployFixture);
 
             await tgtStaking.connect(alice).deposit("1");
 
@@ -174,18 +172,11 @@ describe.only("TGT Staking", function () {
 
             // Making sure that `pendingReward` still return the accurate tokens even after updating pools
             await tgtStaking.updateReward(rewardToken.address);
-            expect(
-                await tgtStaking.pendingReward(
-                    alice.address,
-                    rewardToken.address
-                )
+            expect(await tgtStaking.pendingReward(alice.address, rewardToken.address)
             ).to.be.closeTo(utils.parseEther("0.5"), utils.parseEther("0.0001"));
 
             await rewardToken.connect(tgtMaker).transfer(tgtStaking.address, utils.parseEther("1"));
 
-            await increase(86400);
-
-            // Should be equal to 2, the previous reward and the new one
             expect(
                 await tgtStaking.pendingReward(alice.address, rewardToken.address)
             ).to.be.closeTo(utils.parseEther("1"), utils.parseEther("0.0001"));
@@ -230,12 +221,12 @@ describe.only("TGT Staking", function () {
             ).to.be.closeTo(utils.parseEther("0.5"), utils.parseEther("0.0001"));
 
             //increase to 6 months, as staking multiplier is 1.5x then.
-            await increase(86400 * 30 * 6);
+            await increase((86400 * 30 * 6) - (86400 * 7));
             // console.log("Staking multiplier is now: " + (await tgtStaking.getStakingMultiplier(alice.address)).toString());
             expect(await tgtStaking.pendingReward(alice.address, rewardToken.address)).to.be.closeTo(utils.parseEther("0.75"), utils.parseEther("0.0001"));
 
             //increase to 1 year, as staking multiplier is 2x then.
-            await increase(86400 * 365);
+            await increase(86400 * 185);
             // console.log("Staking multiplier is now: " + (await tgtStaking.getStakingMultiplier(alice.address)).toString());
             expect(await tgtStaking.pendingReward(alice.address, rewardToken.address)).to.be.closeTo(utils.parseEther("1"), utils.parseEther("0.0001"));
 
@@ -327,7 +318,6 @@ describe.only("TGT Staking", function () {
             expect(await rewardToken.balanceOf(alice.address)).to.be.closeTo(utils.parseEther("0.5"), utils.parseEther("0.0001"));
 
             await rewardToken.connect(tgtMaker).transfer(tgtStaking.address, utils.parseEther("1"));
-            await increase(7 * 86400);
             await tgtStaking.connect(alice).withdraw(0);
             expect(await rewardToken.balanceOf(alice.address)).to.be.closeTo(utils.parseEther("1"), utils.parseEther("0.0001"));
         });
@@ -397,7 +387,7 @@ describe.only("TGT Staking", function () {
             );
 
             await rewardToken.connect(tgtMaker).transfer(tgtStaking.address, utils.parseEther("4"));
-            await increase(86400 * 10);
+            await increase(86400 * 7);
 
             await tgtStaking.connect(bob).withdraw("0");
             // reward = accRewardBalance * bobShare / PRECISION - bobRewardDebt
@@ -519,7 +509,7 @@ describe.only("TGT Staking", function () {
             );
         });
 
-        it.only("should linearly increase staking multiplier after 7 days", async function () {
+        it("should linearly increase staking multiplier after 7 days", async function () {
             const {
                 tgtStaking,
                 tgt,
@@ -853,7 +843,7 @@ describe.only("TGT Staking", function () {
 
             await increase(86400 * 365);
             await tgtStaking.connect(bob).deposit(utils.parseEther("100")); // Bob enters
-            await increase(86400 * 10);
+            await increase(86400 * 7);
             await rewardToken.connect(tgtMaker).transfer(tgtStaking.address, utils.parseEther("100"));
 
             // alice = 100 1 year = 2x
