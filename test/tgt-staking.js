@@ -519,6 +519,33 @@ describe.only("TGT Staking", function () {
             );
         });
 
+        it.only("should linearly increase staking multiplier after 7 days", async function () {
+            const {
+                tgtStaking,
+                tgt,
+                rewardToken,
+                alice,
+                USDC
+            } = await loadFixture(deployFixture,);
+            let usdc = await USDC.deploy();
+            await tgtStaking.addRewardToken(usdc.address);
+            await usdc.mint(tgtStaking.address, utils.parseEther("100"));
+            expect(await tgtStaking.pendingReward(alice.address, usdc.address)).to.be.equal(utils.parseEther("0"));
+            await tgtStaking.connect(alice).deposit(1);
+            increase(86400 * 7);
+            expect(await tgtStaking.pendingReward(alice.address, usdc.address)).to.be.equal(utils.parseEther("50"));
+            increase(86400 * 30);
+            expect(await tgtStaking.pendingReward(alice.address, usdc.address)).to.be.equal(utils.parseEther("54.165"));
+            increase(86400 * 60);
+            expect(await tgtStaking.pendingReward(alice.address, usdc.address)).to.be.equal(utils.parseEther("62.5"));
+            increase(86400 * 83);
+            expect(await tgtStaking.pendingReward(alice.address, usdc.address)).to.be.equal(utils.parseEther("75"));
+            increase(86400 * 90);
+            expect(await tgtStaking.pendingReward(alice.address, usdc.address)).to.be.equal(utils.parseEther("87.5"));
+            increase(86400 * 95);
+            expect(await tgtStaking.pendingReward(alice.address, usdc.address)).to.be.equal(utils.parseEther("100"));
+        });
+
         it("rewardDebt should be updated after a year as expected, alice deposits before last reward is sent", async function () {
 
             const {
@@ -528,15 +555,13 @@ describe.only("TGT Staking", function () {
                 alice,
                 bob,
                 USDC
-            } = await loadFixture(
-                deployFixture,
-            );
+            } = await loadFixture(deployFixture);
 
             let usdc = await USDC.deploy();
             await tgtStaking.addRewardToken(usdc.address);
             await tgtStaking.connect(alice).deposit(1);
             await tgtStaking.connect(bob).deposit(1);
-            increase(86400 * 366);
+            increase(86400 * 7);
 
             await usdc.mint(tgtStaking.address, utils.parseEther("100"));
 
@@ -544,18 +569,18 @@ describe.only("TGT Staking", function () {
 
             let balAlice = await usdc.balanceOf(alice.address);
             let balBob = await usdc.balanceOf(bob.address);
-            expect(balAlice).to.be.equal(utils.parseEther("50"));
+            expect(balAlice).to.be.closeTo(utils.parseEther("25"), utils.parseEther("0.0001"));
             expect(balBob).to.be.equal(0);
 
             await usdc.mint(tgtStaking.address, utils.parseEther("100"));
 
             await tgtStaking.connect(bob).withdraw(0);
             await tgtStaking.connect(alice).deposit(1);
-            increase(86400 * 366);
+            increase(86400 * 7);
 
             balBob = await usdc.balanceOf(bob.address);
             expect(await usdc.balanceOf(alice.address)).to.be.equal(balAlice);
-            expect(balBob).to.be.equal(utils.parseEther("150"));
+            expect(balBob).to.be.closeTo(utils.parseEther("75"), utils.parseEther("0.0001"));
 
             await usdc.mint(tgtStaking.address, utils.parseEther("100"));
 
@@ -564,8 +589,8 @@ describe.only("TGT Staking", function () {
 
             balAlice = await usdc.balanceOf(alice.address);
             balBob = await usdc.balanceOf(bob.address);
-            expect(balAlice).to.be.equal(utils.parseEther("100"));
-            expect(balBob).to.be.equal(utils.parseEther("200"));
+            expect(balAlice).to.be.closeTo(utils.parseEther("50"), utils.parseEther("0.0001"));
+            expect(balBob).to.be.closeTo(utils.parseEther("100"), utils.parseEther("0.0001"));
 
             await tgtStaking.removeRewardToken(usdc.address);
         });

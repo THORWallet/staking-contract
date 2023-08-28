@@ -5,7 +5,7 @@ pragma solidity ^0.8.21;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-//import "hardhat/console.sol";
+import "hardhat/console.sol";
 
 /**
  * @title TGT Staking
@@ -395,16 +395,50 @@ contract TGTStaking is Ownable {
         if (user.depositTimestamp == 0) {
             return 0;
         }
-        uint256 timeDiff = (block.timestamp - user.depositTimestamp);
+        uint256 timeDiff = block.timestamp - user.depositTimestamp;
+        console.log("timeDiff: %s", timeDiff);
+        console.log("7 days: ", 7 days);
+        console.log("how much percent is 33 in 99", calculatePercentage(33, 99));
+        console.log("how much percent is 9 in 999", calculatePercentage(9, 999));
+        console.log("20 percent of 500", calculatePart(500, 2000));
+        console.log("50 percent of 25e16", calculatePart(25e16, 5000));
+
+        console.log("calculatePercentage %s", calculatePercentage(timeDiff, 30 days * 6));
+        console.log("calculatePart ", calculatePart(25e16, calculatePercentage(timeDiff, 30 days * 6)));
         if (timeDiff >= 365 days) {
             return 1e18;
         } else if (timeDiff >= (30 days * 6) && timeDiff < 365 days) {
-            return (75e16 + (timeDiff / (30 days * 6)));
+            if (timeDiff > (30 days * 6)) {
+                return (75e16 + calculatePart(25e16, calculatePercentage(timeDiff - 30 days * 6, 30 days * 6)));
+            }
+            else return 75e16;
         }
         else if (timeDiff >= 7 days && timeDiff < (30 days * 6)) {
-            return (5e17 + (timeDiff / 7 days));
+            if (timeDiff > 7 days) {
+                return (5e17 + calculatePart(25e16, calculatePercentage(timeDiff - 7 days, 30 days * 6)));
+            }
+            else return 5e17;
         }
         return 0;
     }
 
+    function calculatePart(uint256 amount, uint256 bps) public pure returns (uint256) {
+        require((amount * bps) >= 10_000);
+        return amount * bps / 10_000;
+    }
+
+    // This function returns how much percent 'part' is of 'whole'
+    // Note: The function returns an integer. For better precision, it multiplies the actual percentage by 100.
+    // For example, if the real percentage is 12.34%, the function will return 1234.
+    function calculatePercentage(uint256 part, uint256 whole) public pure returns (uint256) {
+        require(whole > 0, "Whole must be greater than zero");
+
+        // Multiply by 10**4 to increase precision
+        uint256 tempPart = part * 10 ** 4;
+
+        // Divide by 'whole' and then multiply by 100 to get the percentage
+        uint256 percentage = (tempPart / whole) * 100;
+
+        return percentage / 100;
+    }
 }
