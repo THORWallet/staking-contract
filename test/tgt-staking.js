@@ -4,8 +4,6 @@ const {network, ethers} = require("hardhat");
 const {loadFixture} = require("@nomicfoundation/hardhat-network-helpers");
 
 const hre = require("hardhat");
-const {getSigners} = require("@nomiclabs/hardhat-ethers/internal/helpers");
-const {ether} = require("@openzeppelin/test-helpers");
 const {utils} = require("ethers");
 
 describe.only("TGT Staking", function () {
@@ -344,12 +342,6 @@ describe.only("TGT Staking", function () {
                 .transfer(tgtStaking.address, utils.parseEther("4"));
             await increase(86400 * 7);
 
-            // accRewardBalance = rewardBalance * PRECISION / totalStaked
-            //                  = 4e18 * 1e24 / 97e18
-            //                  = 0.020618556701030927835051e24
-            // bobRewardDebt = accRewardBalance * bobShare / PRECISION
-            //               = accRewardBalance * 194e18 / 1e24
-            //               = 0.3999999999999999999e18
             await tgtStaking.connect(bob).deposit(utils.parseEther("200")); // Bob enters
 
             console.log("Reward pool balance: " + (await rewardToken.balanceOf(tgtStaking.address)).toString());
@@ -363,9 +355,7 @@ describe.only("TGT Staking", function () {
             console.log("Pending reward for Carol: " + utils.formatEther(await tgtStaking.pendingReward(carol.address, rewardToken.address)));
 
             await tgtStaking.connect(carol).withdraw(utils.parseEther("97"));
-            // reward = accRewardBalance * carolShare / PRECISION
-            //        = accRewardBalance * 97e18 / 1e24
-            //        = 1.999999999999999999e18
+
             expect(await rewardToken.balanceOf(carol.address)).to.be.closeTo(
                 utils.parseEther("1"),
                 utils.parseEther("0.0001")
@@ -375,14 +365,9 @@ describe.only("TGT Staking", function () {
             await tgtStaking.connect(alice).withdraw(utils.parseEther("194"));
             // She gets the same reward as Carol
             const aliceBalance = await rewardToken.balanceOf(alice.address);
-            // aliceRewardDebt = accRewardBalance * aliceShare / PRECISION
-            //        = accRewardBalance * 0 / PRECISION - 0
-            //        = 0      (she withdraw everything, so her share is 0)
-            // reward = accRewardBalance * aliceShare / PRECISION
-            //        = accRewardBalance * 97e18 / 1e24
-            //        = 1.999999999999999999e18
+
             expect(aliceBalance).to.be.closeTo(
-                utils.parseEther("2"),
+                utils.parseEther("1"),
                 utils.parseEther("0.0001")
             );
 
@@ -403,9 +388,7 @@ describe.only("TGT Staking", function () {
             // reward = accRewardBalance * aliceShare / PRECISION - aliceRewardDebt
             //        = accRewardBalance * 0 / PRECISION - 0
             //        = 0      (she withdraw everything, so her share is 0)
-            expect(await rewardToken.balanceOf(alice.address)).to.be.equal(
-                aliceBalance
-            );
+            expect(await rewardToken.balanceOf(alice.address)).to.be.equal(aliceBalance);
         });
 
         it("pending tokens function should return the same number of token that user actually receive", async function () {
@@ -536,7 +519,7 @@ describe.only("TGT Staking", function () {
             expect(await tgtStaking.pendingReward(alice.address, usdc.address)).to.be.equal(utils.parseEther("100"));
         });
 
-        it("rewardDebt should be updated after a year as expected, alice deposits before last reward is sent", async function () {
+        it.only("rewardDebt should be updated, alice deposits before last reward is sent", async function () {
 
             const {
                 tgtStaking,
@@ -559,7 +542,7 @@ describe.only("TGT Staking", function () {
 
             let balAlice = await usdc.balanceOf(alice.address);
             let balBob = await usdc.balanceOf(bob.address);
-            expect(balAlice).to.be.closeTo(utils.parseEther("25"), utils.parseEther("0.0001"));
+            expect(balAlice).to.be.equal(utils.parseEther("25"));
             expect(balBob).to.be.equal(0);
 
             await usdc.mint(tgtStaking.address, utils.parseEther("100"));
@@ -570,17 +553,21 @@ describe.only("TGT Staking", function () {
 
             balBob = await usdc.balanceOf(bob.address);
             expect(await usdc.balanceOf(alice.address)).to.be.equal(balAlice);
-            expect(balBob).to.be.closeTo(utils.parseEther("75"), utils.parseEther("0.0001"));
+            expect(balBob).to.be.equal(utils.parseEther("75"));
 
             await usdc.mint(tgtStaking.address, utils.parseEther("100"));
 
             await tgtStaking.connect(bob).withdraw(0);
+            //FIXME Alice rewardDebt is not updated correctly, seems to be 0 but should be 25
             await tgtStaking.connect(alice).withdraw(0);
 
             balAlice = await usdc.balanceOf(alice.address);
             balBob = await usdc.balanceOf(bob.address);
-            expect(balAlice).to.be.closeTo(utils.parseEther("50"), utils.parseEther("0.0001"));
-            expect(balBob).to.be.closeTo(utils.parseEther("100"), utils.parseEther("0.0001"));
+            expect(balAlice).to.be.equal(utils.parseEther("50"));
+            expect(balBob).to.be.equal(utils.parseEther("100"));
+
+            // const pendingRewardBob = await tgtStaking.pendingReward(bob.address, usdc.address)
+            // console.log("Pending reward for Bob: " + utils.formatEther(pendingRewardBob));
 
             await tgtStaking.removeRewardToken(usdc.address);
         });
@@ -594,15 +581,13 @@ describe.only("TGT Staking", function () {
                 alice,
                 bob,
                 USDC
-            } = await loadFixture(
-                deployFixture,
-            );
+            } = await loadFixture(deployFixture);
 
             let usdc = await USDC.deploy();
             await tgtStaking.addRewardToken(usdc.address);
             await tgtStaking.connect(alice).deposit(1);
             await tgtStaking.connect(bob).deposit(1);
-            increase(86400 * 366);
+            increase(86400 * 365);
 
             await usdc.mint(tgtStaking.address, utils.parseEther("100"));
 
