@@ -519,59 +519,6 @@ describe.only("TGT Staking", function () {
             expect(await tgtStaking.pendingReward(alice.address, usdc.address)).to.be.equal(utils.parseEther("100"));
         });
 
-        it.only("rewardDebt should be updated, alice deposits before last reward is sent", async function () {
-
-            const {
-                tgtStaking,
-                tgt,
-                rewardToken,
-                alice,
-                bob,
-                USDC
-            } = await loadFixture(deployFixture);
-
-            let usdc = await USDC.deploy();
-            await tgtStaking.addRewardToken(usdc.address);
-            await tgtStaking.connect(alice).deposit(1);
-            await tgtStaking.connect(bob).deposit(1);
-            increase(86400 * 7);
-
-            await usdc.mint(tgtStaking.address, utils.parseEther("100"));
-
-            await tgtStaking.connect(alice).withdraw(1);
-
-            let balAlice = await usdc.balanceOf(alice.address);
-            let balBob = await usdc.balanceOf(bob.address);
-            expect(balAlice).to.be.equal(utils.parseEther("25"));
-            expect(balBob).to.be.equal(0);
-
-            await usdc.mint(tgtStaking.address, utils.parseEther("100"));
-
-            await tgtStaking.connect(bob).withdraw(0);
-            await tgtStaking.connect(alice).deposit(1);
-            increase(86400 * 7);
-
-            balBob = await usdc.balanceOf(bob.address);
-            expect(await usdc.balanceOf(alice.address)).to.be.equal(balAlice);
-            expect(balBob).to.be.equal(utils.parseEther("75"));
-
-            await usdc.mint(tgtStaking.address, utils.parseEther("100"));
-
-            await tgtStaking.connect(bob).withdraw(0);
-            //FIXME Alice rewardDebt is not updated correctly, seems to be 0 but should be 25
-            await tgtStaking.connect(alice).withdraw(0);
-
-            balAlice = await usdc.balanceOf(alice.address);
-            balBob = await usdc.balanceOf(bob.address);
-            expect(balAlice).to.be.equal(utils.parseEther("50"));
-            expect(balBob).to.be.equal(utils.parseEther("100"));
-
-            // const pendingRewardBob = await tgtStaking.pendingReward(bob.address, usdc.address)
-            // console.log("Pending reward for Bob: " + utils.formatEther(pendingRewardBob));
-
-            await tgtStaking.removeRewardToken(usdc.address);
-        });
-
         it("rewardDebt should be updated as expected, alice deposits before last reward is sent", async function () {
 
             const {
@@ -608,7 +555,7 @@ describe.only("TGT Staking", function () {
             expect(balBob).to.be.closeTo(pendingRewardBob, utils.parseEther("0.0001"));
 
             await tgtStaking.connect(alice).deposit(1);
-            increase(86400 * 8);
+            increase(86400 * 7);
 
             balBob = await usdc.balanceOf(bob.address);
             expect(await usdc.balanceOf(alice.address)).to.be.equal(balAlice);
@@ -652,9 +599,7 @@ describe.only("TGT Staking", function () {
                 alice,
                 bob,
                 USDC
-            } = await loadFixture(
-                deployFixture,
-            );
+            } = await loadFixture(deployFixture);
 
             let token1 = await USDC.deploy();
             await tgtStaking.addRewardToken(token1.address);
@@ -662,10 +607,9 @@ describe.only("TGT Staking", function () {
             await tgtStaking.connect(alice).deposit(1);
             await tgtStaking.connect(bob).deposit(1);
             increase(86400 * 7);
-            await token1.mint(
-                tgtStaking.address,
-                utils.parseEther("1")
-            );
+
+            await token1.mint(tgtStaking.address, utils.parseEther("1"));
+
             await tgtStaking.connect(alice).withdraw(1);
 
             let balAlice = await token1.balanceOf(alice.address);
@@ -680,20 +624,16 @@ describe.only("TGT Staking", function () {
             expect(await token1.balanceOf(alice.address)).to.be.equal(balAlice);
             expect(balBob).to.be.closeTo(utils.parseEther("0.75"), utils.parseEther("0.0001"));
 
-            await token1.mint(
-                tgtStaking.address,
-                utils.parseEther("1")
-            );
+            await token1.mint(tgtStaking.address, utils.parseEther("1"));
+
             await tgtStaking.connect(alice).deposit(1);
             await tgtStaking.connect(bob).withdraw(0);
             await tgtStaking.connect(alice).withdraw(0);
 
             balAlice = await token1.balanceOf(alice.address);
             balBob = await token1.balanceOf(bob.address);
-            expect(await token1.balanceOf(alice.address)).to.be.equal(
-                utils.parseEther("0.25")
-            );
-            expect(balBob).to.be.closeTo(utils.parseEther("1.25"), utils.parseEther("0.0001"));
+            expect(await token1.balanceOf(alice.address)).to.be.equal(utils.parseEther("0.25"));
+            expect(balBob).to.be.equal(utils.parseEther("1.25"));
         });
 
         it("should allow adding and removing a rewardToken, only by owner", async function () {
@@ -907,7 +847,7 @@ describe.only("TGT Staking", function () {
 
         });
 
-        it.skip("should calculate rewards correctly when the number of depositors is >= 200", async function () {
+        it("should calculate rewards correctly when the number of depositors is >= 200", async function () {
 
             const {
                 tgtStaking,
@@ -918,12 +858,9 @@ describe.only("TGT Staking", function () {
                 bob,
                 carol,
                 tgtMaker
-            } = await loadFixture(
-                deployFixture,
-            );
-            await tgtStaking.connect(dev).setDepositFeePercent(utils.parseEther("0"));
+            } = await loadFixture(deployFixture);
 
-            const signers = await ethers.getSigners();
+            await tgtStaking.connect(dev).setDepositFeePercent(utils.parseEther("0"));
 
             for (let i = 0; i < 200; i++) {
                 const signer = new ethers.Wallet.createRandom().connect(ethers.provider);
