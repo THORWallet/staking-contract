@@ -519,6 +519,68 @@ describe.only("TGT Staking", function () {
             expect(await tgtStaking.pendingReward(alice.address, usdc.address)).to.be.equal(utils.parseEther("100"));
         });
 
+        it.only("deposit and withdraw should be the same as deposit and claiming", async function () {
+
+            const {
+                tgtStaking,
+                tgt,
+                rewardToken,
+                alice,
+                bob,
+                USDC
+            } = await loadFixture(deployFixture);
+
+            let usdc = await USDC.deploy();
+            await tgtStaking.addRewardToken(usdc.address);
+            await tgtStaking.connect(alice).deposit(1);
+            await tgtStaking.connect(bob).deposit(1);
+            increase(86400 * 7);
+
+            await usdc.mint(tgtStaking.address, utils.parseEther("100"));
+
+            await tgtStaking.connect(alice).withdraw(1);
+
+            let balAlice = await usdc.balanceOf(alice.address);
+            let balBob = await usdc.balanceOf(bob.address);
+            expect(balAlice).to.be.equal(utils.parseEther("25"));
+            expect(balBob).to.be.equal(0);
+
+            await usdc.mint(tgtStaking.address, utils.parseEther("100"));
+
+            await tgtStaking.connect(bob).withdraw(0);
+            await tgtStaking.connect(alice).deposit(1);
+            increase(86400 * 7);
+
+            balBob = await usdc.balanceOf(bob.address);
+            expect(await usdc.balanceOf(alice.address)).to.be.equal(balAlice);
+            expect(balBob).to.be.equal(utils.parseEther("75"));
+
+            await usdc.mint(tgtStaking.address, utils.parseEther("100"));
+
+            console.log("USDC Staking balance: ", utils.formatEther(await usdc.balanceOf(tgtStaking.address)));
+            const pendingRewardBob = await tgtStaking.pendingReward(bob.address, usdc.address)
+            console.log("Pending reward for Bob: " + utils.formatEther(pendingRewardBob));
+            const pendingRewardAlice = await tgtStaking.pendingReward(alice.address, usdc.address)
+            console.log("Pending reward for Alice: " + utils.formatEther(pendingRewardAlice));
+            console.log("USDC Alice balance: ", utils.formatEther(await usdc.balanceOf(alice.address)));
+            console.log("Staking multiplier for Alice: " + utils.formatEther(await tgtStaking.getStakingMultiplier(alice.address)));
+            userInfo = await tgtStaking.getUserInfo(alice.address, rewardToken.address);
+            console.log("Staking deposit for Alice: " + userInfo[0]);
+            userInfo = await tgtStaking.getUserInfo(bob.address, rewardToken.address);
+            console.log("Staking deposit for Bob: " + userInfo[0]);
+
+            await tgtStaking.connect(bob).withdraw(0);
+            //FIXME Alice rewardDebt is not updated correctly, seems to be 0 but should be 25
+            await tgtStaking.connect(alice).withdraw(0);
+
+            balAlice = await usdc.balanceOf(alice.address);
+            balBob = await usdc.balanceOf(bob.address);
+            expect(balAlice).to.be.equal(utils.parseEther("100"));
+            expect(balBob).to.be.equal(utils.parseEther("101.94"));
+
+            await tgtStaking.removeRewardToken(usdc.address);
+        });
+
         it("rewardDebt should be updated as expected, alice deposits before last reward is sent", async function () {
 
             const {
