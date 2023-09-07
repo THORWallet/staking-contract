@@ -3,6 +3,7 @@
 pragma solidity ^0.8.21;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "hardhat/console.sol";
@@ -17,7 +18,7 @@ import "hardhat/console.sol";
  * Every time `updateReward(token)` is called, We distribute the balance of that tokens as rewards to users that are
  * currently staking inside this contract, and they can claim it using `withdraw(0)`
  */
-contract TGTStaking is Ownable {
+contract TGTStaking is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     /// @notice Info of each user
@@ -135,7 +136,7 @@ contract TGTStaking is Ownable {
      * @notice Deposit TGT for reward token allocation
      * @param _amount The amount of TGT to deposit
      */
-    function deposit(uint256 _amount) external {
+    function deposit(uint256 _amount) external nonReentrant {
         UserInfo storage user = userInfo[_msgSender()];
 
         uint256 _fee = _amount * depositFeePercent / DEPOSIT_FEE_PERCENT_PRECISION;
@@ -197,7 +198,7 @@ contract TGTStaking is Ownable {
      * @notice Add a reward token
      * @param _rewardToken The address of the reward token
      */
-    function addRewardToken(IERC20 _rewardToken) external onlyOwner {
+    function addRewardToken(IERC20 _rewardToken) external nonReentrant onlyOwner {
         require(
             !isRewardToken[_rewardToken] && address(_rewardToken) != address(0),
             "TGTStaking: token can't be added"
@@ -213,7 +214,7 @@ contract TGTStaking is Ownable {
      * @notice Remove a reward token
      * @param _rewardToken The address of the reward token
      */
-    function removeRewardToken(IERC20 _rewardToken) external onlyOwner {
+    function removeRewardToken(IERC20 _rewardToken) external nonReentrant onlyOwner {
         require(isRewardToken[_rewardToken], "TGTStaking: token can't be removed");
         updateReward(_rewardToken);
         isRewardToken[_rewardToken] = false;
@@ -233,7 +234,7 @@ contract TGTStaking is Ownable {
      * @notice Set the deposit fee percent
      * @param _depositFeePercent The new deposit fee percent
      */
-    function setDepositFeePercent(uint256 _depositFeePercent) external onlyOwner {
+    function setDepositFeePercent(uint256 _depositFeePercent) external nonReentrant onlyOwner {
         require(_depositFeePercent <= 5e17, "TGTStaking: deposit fee can't be greater than 50%");
         uint256 oldFee = depositFeePercent;
         depositFeePercent = _depositFeePercent;
@@ -279,7 +280,7 @@ contract TGTStaking is Ownable {
      * @notice To just harvest the rewards pass 0 as `_amount`, to harvest and withdraw pass the amount to withdraw
      * @param _amount The amount of TGT to withdraw if any
      */
-    function withdraw(uint256 _amount) external {
+    function withdraw(uint256 _amount) external nonReentrant {
         UserInfo storage user = userInfo[_msgSender()];
         uint256 _previousAmount = user.amount;
         require(_amount <= _previousAmount, "TGTStaking: withdraw amount exceeds balance");
@@ -321,7 +322,7 @@ contract TGTStaking is Ownable {
         return (_token.balanceOf(address(this)) * treasuryFeePercentage) / 1e18 - treasuryRewardDebt[_token];
     }
 
-    function treasuryClaim() external {
+    function treasuryClaim() external nonReentrant {
         require(owner() == _msgSender() || treasury == _msgSender(), "Caller is not the owner or treasury");
         uint256 _totalTgt = internalTgtBalance;
 
@@ -340,12 +341,12 @@ contract TGTStaking is Ownable {
         }
     }
 
-    function updateTreasury(address _treasury) external {
+    function updateTreasury(address _treasury) external nonReentrant {
         require(owner() == _msgSender() || treasury == _msgSender(), "Caller is not the owner or treasury");
         treasury = _treasury;
     }
 
-    function updateTreasuryPercentage(uint256 _treasuryFeePercentage) external {
+    function updateTreasuryPercentage(uint256 _treasuryFeePercentage) external nonReentrant {
         require(owner() == _msgSender() || treasury == _msgSender(), "Caller is not the owner or treasury");
 
         require(_treasuryFeePercentage <= 5e17, "TGTStaking: max treasury fee can't be greater than 50%");
@@ -355,7 +356,7 @@ contract TGTStaking is Ownable {
     /**
      * @notice Withdraw without caring about rewards. EMERGENCY ONLY
      */
-    function emergencyWithdraw() external {
+    function emergencyWithdraw() external nonReentrant {
         UserInfo storage user = userInfo[_msgSender()];
 
         uint256 _amount = user.amount;
