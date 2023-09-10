@@ -6,7 +6,7 @@ const {loadFixture} = require("@nomicfoundation/hardhat-network-helpers");
 const hre = require("hardhat");
 const {utils} = require("ethers");
 
-describe("TGT Staking with 0 treasury fee", function () {
+describe("TGT Staking with 25% treasury fee", function () {
 
     async function deployFixture() {
         const TGTStaking = await ethers.getContractFactory("TGTStaking");
@@ -46,7 +46,7 @@ describe("TGT Staking with 0 treasury fee", function () {
             penaltyCollector.address,
             utils.parseEther("0.03"),
             treasury.address,
-            utils.parseEther("0")
+            utils.parseEther("0.25")
         );
 
         await tgt.connect(alice).approve(tgtStaking.address, utils.parseEther("100000"));
@@ -164,28 +164,25 @@ describe("TGT Staking with 0 treasury fee", function () {
             await increase(86400 * 7);
 
             expect(await tgtStaking.pendingReward(alice.address, rewardToken.address)).to.be.closeTo(
-                utils.parseEther("0.5"),
+                utils.parseEther("0.375"),
                 utils.parseEther("0.0001")
             );
 
             // Making sure that `pendingReward` still return the accurate tokens even after updating pools
             await tgtStaking.updateReward(rewardToken.address);
             expect(await tgtStaking.pendingReward(alice.address, rewardToken.address)
-            ).to.be.closeTo(utils.parseEther("0.5"), utils.parseEther("0.0001"));
+            ).to.be.closeTo(utils.parseEther("0.375"), utils.parseEther("0.0001"));
 
             await rewardToken.connect(tgtMaker).transfer(tgtStaking.address, utils.parseEther("1"));
 
             expect(
                 await tgtStaking.pendingReward(alice.address, rewardToken.address)
-            ).to.be.closeTo(utils.parseEther("1"), utils.parseEther("0.0001"));
+            ).to.be.closeTo(utils.parseEther("0.75"), utils.parseEther("0.0001"));
 
             // Making sure that `pendingReward` still return the accurate tokens even after updating pools
             await tgtStaking.updateReward(rewardToken.address);
-            expect(await tgtStaking.pendingReward(
-                    alice.address,
-                    rewardToken.address
-                )
-            ).to.be.closeTo(utils.parseEther("1"), utils.parseEther("0.0001"));
+            expect(await tgtStaking.pendingReward(alice.address, rewardToken.address)
+            ).to.be.closeTo(utils.parseEther("0.75"), utils.parseEther("0.0001"));
         });
 
         it("should return rewards with staking multiplier accordingly", async function () {
@@ -207,31 +204,28 @@ describe("TGT Staking with 0 treasury fee", function () {
             //increase to 7 days, as staking multiplier is 1x then.
             await increase(86400 * 7);
             console.log("Staking multiplier is now: " + (await tgtStaking.getStakingMultiplier(alice.address)).toString());
-            expect(await tgtStaking.pendingReward(alice.address, rewardToken.address)).to.be.closeTo(utils.parseEther("0.5"), utils.parseEther("0.0001"));
+            expect(await tgtStaking.pendingReward(alice.address, rewardToken.address)).to.be.closeTo(utils.parseEther("0.375"), utils.parseEther("0.0001"));
 
             // Making sure that `pendingReward` still return the accurate tokens even after updating pools
             await tgtStaking.updateReward(rewardToken.address);
             expect(
-                await tgtStaking.pendingReward(
-                    alice.address,
-                    rewardToken.address
-                )
-            ).to.be.closeTo(utils.parseEther("0.5"), utils.parseEther("0.0001"));
+                await tgtStaking.pendingReward(alice.address, rewardToken.address)
+            ).to.be.closeTo(utils.parseEther("0.375"), utils.parseEther("0.0001"));
 
             //increase to 6 months, as staking multiplier is 1.5x then.
             await increase((86400 * 30 * 6) - (86400 * 7));
             // console.log("Staking multiplier is now: " + (await tgtStaking.getStakingMultiplier(alice.address)).toString());
-            expect(await tgtStaking.pendingReward(alice.address, rewardToken.address)).to.be.closeTo(utils.parseEther("0.75"), utils.parseEther("0.0001"));
+            expect(await tgtStaking.pendingReward(alice.address, rewardToken.address)).to.be.closeTo(utils.parseEther("0.5625"), utils.parseEther("0.0001"));
 
-            //increase to 1 year, as staking multiplier is 2x then.
+            //increase to 1 year, as staking multiplier is 1x then.
             await increase(86400 * 185);
             // console.log("Staking multiplier is now: " + (await tgtStaking.getStakingMultiplier(alice.address)).toString());
-            expect(await tgtStaking.pendingReward(alice.address, rewardToken.address)).to.be.closeTo(utils.parseEther("1"), utils.parseEther("0.0001"));
+            expect(await tgtStaking.pendingReward(alice.address, rewardToken.address)).to.be.closeTo(utils.parseEther("0.75"), utils.parseEther("0.0001"));
 
             // Making sure that `pendingReward` still return the accurate tokens even after updating pools
             await tgtStaking.updateReward(rewardToken.address);
             expect(await tgtStaking.pendingReward(alice.address, rewardToken.address)
-            ).to.be.closeTo(utils.parseEther("1"), utils.parseEther("0.0001"));
+            ).to.be.closeTo(utils.parseEther("0.75"), utils.parseEther("0.0001"));
 
         });
 
@@ -271,7 +265,7 @@ describe("TGT Staking with 0 treasury fee", function () {
             //        = 0.999999999999999999e18
 
             expect(await rewardToken.balanceOf(alice.address)).to.be.closeTo(
-                utils.parseEther("0.5"),
+                utils.parseEther("0.375"),
                 utils.parseEther("0.0001")
             );
 
@@ -283,7 +277,7 @@ describe("TGT Staking with 0 treasury fee", function () {
             expect(
                 await rewardToken.balanceOf(carol.address)
             ).to.be.closeTo(
-                utils.parseEther("1.5"),
+                utils.parseEther("1.125"),
                 utils.parseEther("0.0001")
             );
 
@@ -292,7 +286,7 @@ describe("TGT Staking with 0 treasury fee", function () {
             //        = accRewardBalance * 194e18 / 1e24
             //        = 1.999999999999999999e18
             expect(await rewardToken.balanceOf(bob.address)).to.be.closeTo(
-                utils.parseEther("1"),
+                utils.parseEther("0.75"),
                 utils.parseEther("0.0001")
             );
         });
@@ -313,11 +307,11 @@ describe("TGT Staking with 0 treasury fee", function () {
             await rewardToken.connect(tgtMaker).transfer(tgtStaking.address, utils.parseEther("1"));
             await increase(7 * 86400);
             await tgtStaking.connect(alice).withdraw(0);
-            expect(await rewardToken.balanceOf(alice.address)).to.be.closeTo(utils.parseEther("0.5"), utils.parseEther("0.0001"));
+            expect(await rewardToken.balanceOf(alice.address)).to.be.closeTo(utils.parseEther("0.375"), utils.parseEther("0.0001"));
 
             await rewardToken.connect(tgtMaker).transfer(tgtStaking.address, utils.parseEther("1"));
             await tgtStaking.connect(alice).withdraw(0);
-            expect(await rewardToken.balanceOf(alice.address)).to.be.closeTo(utils.parseEther("1"), utils.parseEther("0.0001"));
+            expect(await rewardToken.balanceOf(alice.address)).to.be.closeTo(utils.parseEther("0.75"), utils.parseEther("0.0001"));
         });
 
         it("should allow deposits and withdraws of multiple users and distribute rewards accordingly even if someone enters or leaves", async function () {
@@ -357,7 +351,7 @@ describe("TGT Staking with 0 treasury fee", function () {
             await tgtStaking.connect(carol).withdraw(utils.parseEther("97"));
 
             expect(await rewardToken.balanceOf(carol.address)).to.be.closeTo(
-                utils.parseEther("1"),
+                utils.parseEther("0.75"),
                 utils.parseEther("0.0001")
             );
 
@@ -367,7 +361,7 @@ describe("TGT Staking with 0 treasury fee", function () {
             const aliceBalance = await rewardToken.balanceOf(alice.address);
 
             expect(aliceBalance).to.be.closeTo(
-                utils.parseEther("1"),
+                utils.parseEther("0.75"),
                 utils.parseEther("0.0001")
             );
 
@@ -379,7 +373,7 @@ describe("TGT Staking with 0 treasury fee", function () {
             //        = accRewardBalance * 194e18 / 1e24 - 3.999999999999999999e18
             //        = 4e18
             expect(await rewardToken.balanceOf(bob.address)).to.be.closeTo(
-                utils.parseEther("4"),
+                utils.parseEther("3"),
                 utils.parseEther("0.0001")
             );
 
@@ -448,7 +442,7 @@ describe("TGT Staking with 0 treasury fee", function () {
             // aliceRewardDebt = 0.999999999999999999e18
             const aliceRewardBalance = await rewardToken.balanceOf(alice.address);
             expect(aliceRewardBalance).to.be.closeTo(
-                utils.parseEther("0.5"),
+                utils.parseEther("0.375"),
                 utils.parseEther("0.0001")
             );
             // accJoeBalance = 0
@@ -463,7 +457,7 @@ describe("TGT Staking with 0 treasury fee", function () {
             //        = accRewardBalance * 970e18 / 1e24
             //        = 0.999999999999999999e18
             expect(await rewardToken.balanceOf(bob.address)).to.be.closeTo(
-                utils.parseEther("0.5"),
+                utils.parseEther("0.375"),
                 utils.parseEther("0.0001")
             );
             // accJoeBalance = tgtBalance * PRECISION / totalStaked
@@ -473,7 +467,7 @@ describe("TGT Staking with 0 treasury fee", function () {
             //        = accJoeBalance * 970e18 / 1e24
             //        = 1.999999999999999999e18
             expect(await tgt.balanceOf(bob.address)).to.be.closeTo(
-                utils.parseEther("1"),
+                utils.parseEther("0.75"),
                 utils.parseEther("0.0001")
             );
 
@@ -487,7 +481,7 @@ describe("TGT Staking with 0 treasury fee", function () {
             //        = accJoeBalance * 970e18 / 1e24
             //        = 1.999999999999999999e18
             expect(await tgt.balanceOf(alice.address)).to.be.closeTo(
-                utils.parseEther("1"),
+                utils.parseEther("0.75"),
                 utils.parseEther("0.0001")
             );
         });
@@ -506,17 +500,17 @@ describe("TGT Staking with 0 treasury fee", function () {
             expect(await tgtStaking.pendingReward(alice.address, usdc.address)).to.be.equal(utils.parseEther("0"));
             await tgtStaking.connect(alice).deposit(1);
             increase(86400 * 7);
-            expect(await tgtStaking.pendingReward(alice.address, usdc.address)).to.be.equal(utils.parseEther("50"));
+            expect(await tgtStaking.pendingReward(alice.address, usdc.address)).to.be.equal(utils.parseEther("37.5"));
             increase(86400 * 30);
-            expect(await tgtStaking.pendingReward(alice.address, usdc.address)).to.be.equal(utils.parseEther("54.165"));
+            expect(await tgtStaking.pendingReward(alice.address, usdc.address)).to.be.equal(utils.parseEther("40.62375"));
             increase(86400 * 60);
-            expect(await tgtStaking.pendingReward(alice.address, usdc.address)).to.be.equal(utils.parseEther("62.5"));
+            expect(await tgtStaking.pendingReward(alice.address, usdc.address)).to.be.equal(utils.parseEther("46.875"));
             increase(86400 * 83);
-            expect(await tgtStaking.pendingReward(alice.address, usdc.address)).to.be.equal(utils.parseEther("75"));
+            expect(await tgtStaking.pendingReward(alice.address, usdc.address)).to.be.equal(utils.parseEther("56.25"));
             increase(86400 * 90);
-            expect(await tgtStaking.pendingReward(alice.address, usdc.address)).to.be.equal(utils.parseEther("87.5"));
+            expect(await tgtStaking.pendingReward(alice.address, usdc.address)).to.be.equal(utils.parseEther("65.625"));
             increase(86400 * 95);
-            expect(await tgtStaking.pendingReward(alice.address, usdc.address)).to.be.equal(utils.parseEther("100"));
+            expect(await tgtStaking.pendingReward(alice.address, usdc.address)).to.be.equal(utils.parseEther("75"));
         });
 
         it("rewardDebt should be updated as expected, alice deposits before last reward is sent", async function () {
@@ -542,7 +536,7 @@ describe("TGT Staking with 0 treasury fee", function () {
 
             let balAlice = await usdc.balanceOf(alice.address);
             let balBob = await usdc.balanceOf(bob.address);
-            expect(balAlice).to.be.closeTo(utils.parseEther("50"), utils.parseEther("0.0001"));
+            expect(balAlice).to.be.closeTo(utils.parseEther("37.5"), utils.parseEther("0.0001"));
             expect(balBob).to.be.equal(0);
 
             await usdc.mint(tgtStaking.address, utils.parseEther("100"));
@@ -559,7 +553,7 @@ describe("TGT Staking with 0 treasury fee", function () {
 
             balBob = await usdc.balanceOf(bob.address);
             expect(await usdc.balanceOf(alice.address)).to.be.equal(balAlice);
-            expect(balBob).to.be.closeTo(utils.parseEther("150"), utils.parseEther("0.0001"));
+            expect(balBob).to.be.closeTo(utils.parseEther("112.5"), utils.parseEther("0.0001"));
 
             await usdc.mint(tgtStaking.address, utils.parseEther("100"));
 
@@ -585,8 +579,8 @@ describe("TGT Staking with 0 treasury fee", function () {
             balAlice = await usdc.balanceOf(alice.address);
             balBob = await usdc.balanceOf(bob.address);
 
-            expect(balAlice).to.be.closeTo(utils.parseEther("100"), utils.parseEther("0.0001"));
-            expect(balBob).to.be.closeTo(utils.parseEther("200"), utils.parseEther("0.0001"));
+            expect(balAlice).to.be.closeTo(utils.parseEther("112.5"), utils.parseEther("0.0001"));
+            expect(balBob).to.be.closeTo(utils.parseEther("150"), utils.parseEther("0.0001"));
 
             await tgtStaking.removeRewardToken(usdc.address);
         });
@@ -614,7 +608,7 @@ describe("TGT Staking with 0 treasury fee", function () {
 
             let balAlice = await token1.balanceOf(alice.address);
             let balBob = await token1.balanceOf(bob.address);
-            expect(balAlice).to.be.equal(utils.parseEther("0.25"));
+            expect(balAlice).to.be.equal(utils.parseEther("0.1875"));
             expect(balBob).to.be.equal(0);
 
             await token1.mint(tgtStaking.address, utils.parseEther("1"));
@@ -622,7 +616,7 @@ describe("TGT Staking with 0 treasury fee", function () {
 
             balBob = await token1.balanceOf(bob.address);
             expect(await token1.balanceOf(alice.address)).to.be.equal(balAlice);
-            expect(balBob).to.be.closeTo(utils.parseEther("0.75"), utils.parseEther("0.0001"));
+            expect(balBob).to.be.closeTo(utils.parseEther("0.5625"), utils.parseEther("0.0001"));
 
             await token1.mint(tgtStaking.address, utils.parseEther("1"));
 
@@ -632,8 +626,8 @@ describe("TGT Staking with 0 treasury fee", function () {
 
             balAlice = await token1.balanceOf(alice.address);
             balBob = await token1.balanceOf(bob.address);
-            expect(await token1.balanceOf(alice.address)).to.be.equal(utils.parseEther("0.25"));
-            expect(balBob).to.be.equal(utils.parseEther("1.25"));
+            expect(await token1.balanceOf(alice.address)).to.be.equal(utils.parseEther("0.1875"));
+            expect(balBob).to.be.equal(utils.parseEther("0.9375"));
         });
 
         it("should allow adding and removing a rewardToken, only by owner", async function () {
@@ -792,18 +786,18 @@ describe("TGT Staking with 0 treasury fee", function () {
 
             await tgtStaking.connect(alice).withdraw(utils.parseEther("0"));
             expect(await rewardToken.balanceOf(alice.address)).to.be.closeTo(
-                utils.parseEther("33.3333"),
-                utils.parseEther("0.0001")
+                utils.parseEther("25"),
+                utils.parseEther("0.001")
             );
             await tgtStaking.connect(bob).withdraw(utils.parseEther("0"));
             expect(await rewardToken.balanceOf(bob.address)).to.be.closeTo(
-                utils.parseEther("16.6666"),
-                utils.parseEther("0.0001")
+                utils.parseEther("12.5"),
+                utils.parseEther("0.001")
             );
             await tgtStaking.connect(carol).withdraw(utils.parseEther("0"));
             expect(await rewardToken.balanceOf(carol.address)).to.be.closeTo(
-                utils.parseEther("33.3333"),
-                utils.parseEther("0.0001")
+                utils.parseEther("25"),
+                utils.parseEther("0.001")
             )
 
             expect(await tgtStaking.pendingReward(alice.address, rewardToken.address)).to.be.equal(utils.parseEther("0"));
@@ -812,7 +806,6 @@ describe("TGT Staking with 0 treasury fee", function () {
 
             await increase(86400 * 365);
             await rewardToken.connect(tgtMaker).transfer(tgtStaking.address, utils.parseEther("100"));
-
 
             console.log("Staking multiplier for Alice: " + utils.formatEther(await tgtStaking.getStakingMultiplier(alice.address)));
             console.log("Pending reward for Alice: " + utils.formatEther((await tgtStaking.pendingReward(alice.address, rewardToken.address))));
@@ -829,15 +822,15 @@ describe("TGT Staking with 0 treasury fee", function () {
             await tgtStaking.connect(carol).withdraw(utils.parseEther("0"));
 
             expect(await rewardToken.balanceOf(alice.address)).to.be.closeTo(
-                utils.parseEther("66.66"),
+                utils.parseEther("50"),
                 utils.parseEther("0.01")
             );
             expect(await rewardToken.balanceOf(bob.address)).to.be.closeTo(
-                utils.parseEther("66.66"),
+                utils.parseEther("50"),
                 utils.parseEther("0.01")
             );
             expect(await rewardToken.balanceOf(carol.address)).to.be.closeTo(
-                utils.parseEther("66.66"),
+                utils.parseEther("50"),
                 utils.parseEther("0.01")
             )
             console.log("Reward balance after all withdrawals: ", utils.formatEther(await rewardToken.balanceOf(tgtStaking.address)));
@@ -900,7 +893,7 @@ describe("TGT Staking with 0 treasury fee", function () {
 
         }).timeout(1000000);
 
-        it("treasuryFeePercentage should return 0", async function () {
+        it("should claim funds for the treasury corresponding to the treasury fee", async function () {
             const {
                 tgtStaking,
                 tgt,
@@ -919,13 +912,27 @@ describe("TGT Staking with 0 treasury fee", function () {
             await rewardToken.connect(tgtMaker).transfer(tgtStaking.address, utils.parseEther("100"));
             await increase(86400 * 7);
             expect(await rewardToken.balanceOf(treasury.address)).to.be.equal(0);
-            expect(await tgtStaking.treasuryFeePercentage()).to.be.equal(utils.parseEther("0"));
+            expect(await tgtStaking.treasuryFeePercentage()).to.be.equal(utils.parseEther("0.25"));
             expect(await tgtStaking.treasury()).to.be.equal(treasury.address);
 
+            expect(await tgtStaking.pendingTreasuryReward(rewardToken.address)).to.be.closeTo(
+                utils.parseEther("25"), utils.parseEther("0.0001")
+            );
             expect(await rewardToken.balanceOf(treasury.address)).to.be.equal(utils.parseEther("0"));
             await tgtStaking.connect(treasury).treasuryClaim();
-            expect(await rewardToken.balanceOf(treasury.address)).to.be.equal(utils.parseEther("0"));
+            expect(await rewardToken.balanceOf(treasury.address)).to.be.closeTo(utils.parseEther("25"), utils.parseEther("0.0001"));
 
+            // await tgtStaking.connect(alice).withdraw(0);
+            // await tgtStaking.connect(bob).withdraw(0);
+            // await tgtStaking.connect(carol).withdraw(0);
+            //
+            // await rewardToken.connect(tgtMaker).transfer(tgtStaking.address, utils.parseEther("100"));
+            //
+            // expect(await tgtStaking.pendingTreasuryReward(rewardToken.address)).to.be.closeTo(
+            //     utils.parseEther("25"), utils.parseEther("0.0001")
+            // );
+            // await tgtStaking.connect(treasury).treasuryClaim();
+            // expect(await rewardToken.balanceOf(treasury.address)).to.be.closeTo(utils.parseEther("50"), utils.parseEther("0.0001"));
         });
 
         it("should be able to update treasury fee and treasury address", async function () {
