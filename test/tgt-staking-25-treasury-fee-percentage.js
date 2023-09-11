@@ -6,7 +6,7 @@ const {loadFixture} = require("@nomicfoundation/hardhat-network-helpers");
 const hre = require("hardhat");
 const {utils} = require("ethers");
 
-describe.only("TGT Staking with 25% treasury fee", function () {
+describe("TGT Staking with 25% treasury fee", function () {
 
     async function deployFixture() {
         const TGTStaking = await ethers.getContractFactory("TGTStaking");
@@ -884,7 +884,7 @@ describe.only("TGT Staking with 25% treasury fee", function () {
 
         }).timeout(1000000);
 
-        it.only("should claim funds for the treasury corresponding to the treasury fee", async function () {
+        it("should claim funds for the treasury corresponding to the treasury fee", async function () {
             const {
                 tgtStaking,
                 tgt,
