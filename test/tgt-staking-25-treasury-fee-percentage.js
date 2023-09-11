@@ -6,7 +6,7 @@ const {loadFixture} = require("@nomicfoundation/hardhat-network-helpers");
 const hre = require("hardhat");
 const {utils} = require("ethers");
 
-describe("TGT Staking with 25% treasury fee", function () {
+describe.only("TGT Staking with 25% treasury fee", function () {
 
     async function deployFixture() {
         const TGTStaking = await ethers.getContractFactory("TGTStaking");
@@ -744,9 +744,8 @@ describe("TGT Staking with 25% treasury fee", function () {
                 bob,
                 carol,
                 tgtMaker
-            } = await loadFixture(
-                deployFixture,
-            );
+            } = await loadFixture(deployFixture);
+
             await tgtStaking.connect(dev).setDepositFeePercent(utils.parseEther("0"));
 
             await tgtStaking.connect(alice).deposit(utils.parseEther("100"));
@@ -885,7 +884,7 @@ describe("TGT Staking with 25% treasury fee", function () {
 
         }).timeout(1000000);
 
-        it("should claim funds for the treasury corresponding to the treasury fee", async function () {
+        it.only("should claim funds for the treasury corresponding to the treasury fee", async function () {
             const {
                 tgtStaking,
                 tgt,
@@ -914,6 +913,16 @@ describe("TGT Staking with 25% treasury fee", function () {
             await tgtStaking.connect(treasury).treasuryClaim();
             expect(await rewardToken.balanceOf(treasury.address)).to.be.closeTo(utils.parseEther("25"), utils.parseEther("0.0001"));
 
+            await tgtStaking.connect(alice).withdraw(0);
+            await tgtStaking.connect(bob).withdraw(0);
+            await tgtStaking.connect(carol).withdraw(0);
+
+            console.log("Alice balance: ", utils.formatEther(await rewardToken.balanceOf(alice.address)));
+            console.log("Bob balance: ", utils.formatEther(await rewardToken.balanceOf(bob.address)));
+            console.log("Carol balance: ", utils.formatEther(await rewardToken.balanceOf(carol.address)));
+            console.log("Treasury balance: ", utils.formatEther(await rewardToken.balanceOf(treasury.address)));
+            console.log("Staking balance: ", utils.formatEther(await rewardToken.balanceOf(tgtStaking.address)));
+
             await rewardToken.connect(tgtMaker).transfer(tgtStaking.address, utils.parseEther("100"));
 
             expect(await tgtStaking.pendingTreasuryReward(rewardToken.address)).to.be.closeTo(
@@ -921,6 +930,17 @@ describe("TGT Staking with 25% treasury fee", function () {
             );
             await tgtStaking.connect(treasury).treasuryClaim();
             expect(await rewardToken.balanceOf(treasury.address)).to.be.closeTo(utils.parseEther("50"), utils.parseEther("0.0001"));
+
+            await tgtStaking.connect(alice).withdraw(0);
+            await tgtStaking.connect(bob).withdraw(0);
+            await tgtStaking.connect(carol).withdraw(0);
+
+            console.log("Alice balance: ", utils.formatEther(await rewardToken.balanceOf(alice.address)));
+            console.log("Bob balance: ", utils.formatEther(await rewardToken.balanceOf(bob.address)));
+            console.log("Carol balance: ", utils.formatEther(await rewardToken.balanceOf(carol.address)));
+            console.log("Treasury balance: ", utils.formatEther(await rewardToken.balanceOf(treasury.address)));
+            console.log("Staking balance: ", utils.formatEther(await rewardToken.balanceOf(tgtStaking.address)));
+
         });
 
         it("should be able to update treasury fee and treasury address", async function () {

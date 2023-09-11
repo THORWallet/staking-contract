@@ -304,6 +304,11 @@ contract TGTStaking is Ownable, ReentrancyGuard {
 //                console.log("reward debt after", user.rewardDebt[_token]);
 
                 if (_pending != 0) {
+                    if (treasuryRewardTotal[_token] > _pending) {
+                        treasuryRewardTotal[_token] -= _pending;
+                    } else {
+                        treasuryRewardTotal[_token] = 0;
+                    }
                     safeTokenTransfer(_token, _msgSender(), _pending);
                     emit ClaimReward(_msgSender(), address(_token), _pending);
                 }
@@ -327,6 +332,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         uint256 _currRewardBalance = _token.balanceOf(address(this));
         uint256 _rewardBalance = _token == tgt ? _currRewardBalance - _totalTgt : _currRewardBalance;
         uint256 _accruedReward = _rewardBalance - treasuryRewardTotal[_token];
+        console.log("treasury reward total", treasuryRewardTotal[_token]);
         console.log("accrued reward", _accruedReward);
         console.log("curr reward balance", _currRewardBalance);
         console.log("reward balance", _rewardBalance);
@@ -334,8 +340,13 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         console.log("acc reward per share", _accRewardTokenPerShare);
         _accRewardTokenPerShare = _accRewardTokenPerShare +
             (((_accruedReward * ACC_REWARD_PER_SHARE_PRECISION / _totalTgt) * treasuryFeePercentage) / 1e18);
+        console.log("acc reward per share after ", _accRewardTokenPerShare);
+
+        console.log("solution 1", _accruedReward * treasuryFeePercentage / 1e18);
+
 //        uint256 unclaimedRewardBalance = _rewardBalance - ((totalClaimedForTreasury[_token] * treasuryFeePercentage) / 1e18);
-        return (_totalTgt * _accRewardTokenPerShare / ACC_REWARD_PER_SHARE_PRECISION);
+//        return (_totalTgt * _accRewardTokenPerShare / ACC_REWARD_PER_SHARE_PRECISION);
+        return (_accruedReward * treasuryFeePercentage / 1e18);
 //        console.log("without debt", _rewardBalance * treasuryFeePercentage / 1e18);
 //        return (unclaimedRewardBalance * treasuryFeePercentage / 1e18);
     }
@@ -356,7 +367,8 @@ contract TGTStaking is Ownable, ReentrancyGuard {
                 (((_accruedReward * ACC_REWARD_PER_SHARE_PRECISION / _totalTgt) * treasuryFeePercentage) / 1e18);
 
 //            console.log("acc reward per share", _accRewardTokenPerShare);
-            uint256 _pending = (_totalTgt * _accRewardTokenPerShare / ACC_REWARD_PER_SHARE_PRECISION);
+//            uint256 _pending = (_totalTgt * _accRewardTokenPerShare / ACC_REWARD_PER_SHARE_PRECISION);
+            uint256 _pending = _accruedReward * treasuryFeePercentage / 1e18;
 //            console.log("pending treasury reward", _pending);
             treasuryRewardTotal[_token] += _rewardBalance - _pending;
             if (_pending != 0) {
@@ -418,8 +430,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         uint256 _accruedReward = _rewardBalance - lastRewardBalance[_token];
 
         accRewardPerShare[_token] = accRewardPerShare[_token] +
-            (_accruedReward * ACC_REWARD_PER_SHARE_PRECISION / _totalTgt) -
-            (((_accruedReward * ACC_REWARD_PER_SHARE_PRECISION / _totalTgt) * treasuryFeePercentage) / 1e18);
+            (_accruedReward * ACC_REWARD_PER_SHARE_PRECISION / _totalTgt);
 
         lastRewardBalance[_token] = _rewardBalance;
     }
