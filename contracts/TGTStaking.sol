@@ -54,11 +54,14 @@ contract TGTStaking is Ownable, ReentrancyGuard {
     /// @notice Last reward balance of `token`
     mapping(IERC20 => uint256) public lastRewardBalance;
 
+    mapping(IERC20 => uint256) public claimedRewards;
+
     address public feeCollector;
 
     address public treasury;
     uint256 public treasuryFeePercentage;
-    mapping(IERC20 => uint256) public treasuryRewardTotal;
+    mapping(IERC20 => uint256) public treasuryRewardTotalRemainder;
+    mapping(IERC20 => uint256) public treasuryRewardClaimed;
 
     /// @notice The deposit fee, scaled to `DEPOSIT_FEE_PERCENT_PRECISION`
     uint256 public depositFeePercent;
@@ -260,18 +263,21 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         uint256 _rewardBalance = _token == tgt ? _currRewardBalance - _totalTgt : _currRewardBalance;
 
 //        console.log("reward balance", _rewardBalance);
-//        console.log("last reward balance", lastRewardBalance[_token]);
+        console.log("last reward balance", lastRewardBalance[_token]);
 //        console.log("total tgt", _totalTgt);
-//        console.log("acc reward per share", _accRewardTokenPerShare);
+        console.log("acc reward per share", _accRewardTokenPerShare);
 
         if (_rewardBalance != lastRewardBalance[_token] && _totalTgt != 0) {
             uint256 _accruedReward = _rewardBalance - lastRewardBalance[_token];
-//            console.log("accrued reward", _accruedReward);
+            console.log("accrued reward", _accruedReward);
+            uint256 treasuryFee = (((_accruedReward * ACC_REWARD_PER_SHARE_PRECISION / _totalTgt) * treasuryFeePercentage) / 1e18);
+            if (treasuryRewardClaimed[_token] == treasuryFee) {
+                treasuryFee = 0;
+            }
             _accRewardTokenPerShare = _accRewardTokenPerShare +
-                (_accruedReward * ACC_REWARD_PER_SHARE_PRECISION / _totalTgt) -
-                (((_accruedReward * ACC_REWARD_PER_SHARE_PRECISION / _totalTgt) * treasuryFeePercentage) / 1e18);
+                (_accruedReward * ACC_REWARD_PER_SHARE_PRECISION / _totalTgt) - treasuryFee;
         }
-//        console.log("acc reward per share", _accRewardTokenPerShare);
+        console.log("acc reward per share", _accRewardTokenPerShare);
 //        console.log("user reward debt", user.rewardDebt[_token]);
 //        console.log("staking multiplier", getStakingMultiplier(_user));
 //        console.log("user amount", user.amount);
@@ -296,17 +302,20 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         if (_previousAmount != 0 && stakingMultiplier > 0) {
             for (uint256 i; i < _len; i++) {
                 IERC20 _token = rewardTokens[i];
+                console.log("accRewardPerShare[_token] b", accRewardPerShare[_token]);
                 updateReward(_token);
+                console.log("accRewardPerShare[_token] after", accRewardPerShare[_token]);
 
                 uint256 _pending = (stakingMultiplier * _previousAmount * accRewardPerShare[_token] / ACC_REWARD_PER_SHARE_PRECISION) / MULTIPLIER_PRECISION - user.rewardDebt[_token];
                 user.rewardDebt[_token] = (stakingMultiplier * _newAmount * accRewardPerShare[_token] / ACC_REWARD_PER_SHARE_PRECISION) / MULTIPLIER_PRECISION;
 
                 if (_pending != 0) {
-                    if (treasuryRewardTotal[_token] > _pending) {
-                        treasuryRewardTotal[_token] -= _pending;
+                    if (treasuryRewardTotalRemainder[_token] > _pending) {
+                        treasuryRewardTotalRemainder[_token] -= _pending;
                     } else {
-                        treasuryRewardTotal[_token] = 0;
+                        treasuryRewardTotalRemainder[_token] = 0;
                     }
+                    claimedRewards[_token] += _pending;
                     safeTokenTransfer(_token, _msgSender(), _pending);
                     emit ClaimReward(_msgSender(), address(_token), _pending);
                 }
@@ -328,12 +337,12 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         uint256 _totalTgt = internalTgtBalance;
         uint256 _currRewardBalance = _token.balanceOf(address(this));
         uint256 _rewardBalance = _token == tgt ? _currRewardBalance - _totalTgt : _currRewardBalance;
-        uint256 _accruedReward = _rewardBalance - treasuryRewardTotal[_token];
-//        console.log("treasury reward total", treasuryRewardTotal[_token]);
-//        console.log("accrued reward", _accruedReward);
-//        console.log("curr reward balance", _currRewardBalance);
-//        console.log("reward balance", _rewardBalance);
-//        console.log("total tgt", _totalTgt);
+        uint256 _accruedReward = _rewardBalance - treasuryRewardTotalRemainder[_token] + claimedRewards[_token];
+        console.log("treasury reward total", treasuryRewardTotalRemainder[_token]);
+        console.log("accrued reward", _accruedReward);
+        console.log("curr reward balance", _currRewardBalance);
+        console.log("reward balance", _rewardBalance);
+        console.log("total tgt", _totalTgt);
 
         return (_accruedReward * treasuryFeePercentage / 1e18);
     }
@@ -345,10 +354,11 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         uint256 _len = rewardTokens.length;
         for (uint256 i; i < _len; i++) {
             IERC20 _token = rewardTokens[i];
+
             uint256 _accRewardTokenPerShare = accRewardPerShare[_token];
             uint256 _currRewardBalance = _token.balanceOf(address(this));
             uint256 _rewardBalance = _token == tgt ? _currRewardBalance - _totalTgt : _currRewardBalance;
-            uint256 _accruedReward = _rewardBalance - treasuryRewardTotal[_token];
+            uint256 _accruedReward = _rewardBalance - treasuryRewardTotalRemainder[_token] + claimedRewards[_token];
 
             _accRewardTokenPerShare = _accRewardTokenPerShare +
                 (((_accruedReward * ACC_REWARD_PER_SHARE_PRECISION / _totalTgt) * treasuryFeePercentage) / 1e18);
@@ -356,7 +366,8 @@ contract TGTStaking is Ownable, ReentrancyGuard {
 //            console.log("acc reward per share", _accRewardTokenPerShare);
             uint256 _pending = _accruedReward * treasuryFeePercentage / 1e18;
 //            console.log("pending treasury reward", _pending);
-            treasuryRewardTotal[_token] += _rewardBalance - _pending;
+            treasuryRewardTotalRemainder[_token] += _rewardBalance - _pending;
+            treasuryRewardClaimed[_token] += _pending;
             if (_pending != 0) {
                 safeTokenTransfer(_token, treasury, _pending);
                 emit ClaimTreasuryReward(treasury, address(_token), _pending);
