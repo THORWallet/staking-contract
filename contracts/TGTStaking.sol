@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "hardhat/console.sol";
+//import "hardhat/console.sol";
 
 /**
  * @title TGT Staking
@@ -54,21 +54,6 @@ contract TGTStaking is Ownable, ReentrancyGuard {
     /// @notice Last reward balance of `token`
     mapping(IERC20 => uint256) public lastRewardBalance;
 
-    mapping(IERC20 => uint256) public claimedRewards;
-
-    address public feeCollector;
-
-    address public treasury;
-    uint256 public treasuryFeePercentage;
-    mapping(IERC20 => uint256) public treasuryRewardTotalRemainder;
-    mapping(IERC20 => uint256) public treasuryRewardClaimed;
-
-    /// @notice The deposit fee, scaled to `DEPOSIT_FEE_PERCENT_PRECISION`
-    uint256 public depositFeePercent;
-
-    /// @notice The precision of `depositFeePercent`
-    uint256 public constant DEPOSIT_FEE_PERCENT_PRECISION = 1e18;
-
     /// @notice Accumulated `token` rewards per share, scaled to `ACC_REWARD_PER_SHARE_PRECISION`
     mapping(IERC20 => uint256) public accRewardPerShare;
 
@@ -81,19 +66,13 @@ contract TGTStaking is Ownable, ReentrancyGuard {
     mapping(address => UserInfo) private userInfo;
 
     /// @notice Emitted when a user deposits TGT
-    event Deposit(address indexed user, uint256 amount, uint256 fee);
-
-    /// @notice Emitted when owner changes the deposit fee percentage
-    event DepositFeeChanged(uint256 newFee, uint256 oldFee);
+    event Deposit(address indexed user, uint256 amount);
 
     /// @notice Emitted when a user withdraws TGT
     event Withdraw(address indexed user, uint256 amount);
 
     /// @notice Emitted when a user claims reward
     event ClaimReward(address indexed user, address indexed rewardToken, uint256 amount);
-
-    /// @notice Emitted when a user claims reward
-    event ClaimTreasuryReward(address indexed treasury, address indexed rewardToken, uint256 amount);
 
     /// @notice Emitted when a user emergency withdraws its TGT
     event EmergencyWithdraw(address indexed user, uint256 amount);
@@ -110,29 +89,15 @@ contract TGTStaking is Ownable, ReentrancyGuard {
      * (with MoneyMaker in our case)
      * @param _rewardToken The address of the ERC20 reward token
      * @param _tgt The address of the TGT token
-     * @param _feeCollector The address where deposit fees will be sent
-     * @param _depositFeePercent The deposit fee percent, scaled to 1e18, e.g. 3% is 3e16
      */
     constructor(
         IERC20 _rewardToken,
-        IERC20 _tgt,
-        address _feeCollector,
-        uint256 _depositFeePercent,
-        address _treasury,
-        uint256 _treasuryFeePercentage
+        IERC20 _tgt
     ) {
         require(address(_rewardToken) != address(0), "TGTStaking: reward token can't be address(0)");
         require(address(_tgt) != address(0), "TGTStaking: tgt can't be address(0)");
-        require(_feeCollector != address(0), "TGTStaking: fee collector can't be address(0)");
-        require(_treasury != address(0), "TGTStaking: treasury can't be address(0)");
-        require(_treasuryFeePercentage <= 5e17, "TGTStaking: max treasury fee can't be greater than 50%");
-        require(_depositFeePercent <= 5e17, "TGTStaking: max deposit fee can't be greater than 50%");
 
         tgt = _tgt;
-        depositFeePercent = _depositFeePercent;
-        feeCollector = _feeCollector;
-        treasury = _treasury;
-        treasuryFeePercentage = _treasuryFeePercentage;
 
         isRewardToken[_rewardToken] = true;
         rewardTokens.push(_rewardToken);
@@ -145,14 +110,11 @@ contract TGTStaking is Ownable, ReentrancyGuard {
     function deposit(uint256 _amount) external nonReentrant {
         UserInfo storage user = userInfo[_msgSender()];
 
-        uint256 _fee = _amount * depositFeePercent / DEPOSIT_FEE_PERCENT_PRECISION;
-        uint256 _amountMinusFee = _amount - _fee;
-
         uint256 _previousAmount = user.amount;
         if (_previousAmount == 0 && _amount > 0) {
             user.depositTimestamp = block.timestamp;
         }
-        uint256 _newAmount = user.amount + _amountMinusFee;
+        uint256 _newAmount = user.amount + _amount;
         user.amount = _newAmount;
 
         uint256 _len = rewardTokens.length;
@@ -173,11 +135,10 @@ contract TGTStaking is Ownable, ReentrancyGuard {
             }
         }
 
-        internalTgtBalance = internalTgtBalance + _amountMinusFee;
+        internalTgtBalance = internalTgtBalance + _amount;
 
-        tgt.safeTransferFrom(_msgSender(), feeCollector, _fee);
-        tgt.safeTransferFrom(_msgSender(), address(this), _amountMinusFee);
-        emit Deposit(_msgSender(), _amountMinusFee, _fee);
+        tgt.safeTransferFrom(_msgSender(), address(this), _amount);
+        emit Deposit(_msgSender(), _amount);
     }
 
     /**
@@ -237,17 +198,6 @@ contract TGTStaking is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice Set the deposit fee percent
-     * @param _depositFeePercent The new deposit fee percent
-     */
-    function setDepositFeePercent(uint256 _depositFeePercent) external nonReentrant onlyOwner {
-        require(_depositFeePercent <= 5e17, "TGTStaking: deposit fee can't be greater than 50%");
-        uint256 oldFee = depositFeePercent;
-        depositFeePercent = _depositFeePercent;
-        emit DepositFeeChanged(_depositFeePercent, oldFee);
-    }
-
-    /**
      * @notice View function to see pending reward token on frontend
      * @param _user The address of the user
      * @param _token The address of the token
@@ -262,25 +212,12 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         uint256 _currRewardBalance = _token.balanceOf(address(this));
         uint256 _rewardBalance = _token == tgt ? _currRewardBalance - _totalTgt : _currRewardBalance;
 
-//        console.log("reward balance", _rewardBalance);
-        console.log("last reward balance", lastRewardBalance[_token]);
-//        console.log("total tgt", _totalTgt);
-        console.log("acc reward per share", _accRewardTokenPerShare);
-
         if (_rewardBalance != lastRewardBalance[_token] && _totalTgt != 0) {
             uint256 _accruedReward = _rewardBalance - lastRewardBalance[_token];
-            console.log("accrued reward", _accruedReward);
-            uint256 treasuryFee = (((_accruedReward * ACC_REWARD_PER_SHARE_PRECISION / _totalTgt) * treasuryFeePercentage) / 1e18);
-            if (treasuryRewardClaimed[_token] == treasuryFee) {
-                treasuryFee = 0;
-            }
+
             _accRewardTokenPerShare = _accRewardTokenPerShare +
-                (_accruedReward * ACC_REWARD_PER_SHARE_PRECISION / _totalTgt) - treasuryFee;
+                (_accruedReward * ACC_REWARD_PER_SHARE_PRECISION / _totalTgt);
         }
-        console.log("acc reward per share", _accRewardTokenPerShare);
-//        console.log("user reward debt", user.rewardDebt[_token]);
-//        console.log("staking multiplier", getStakingMultiplier(_user));
-//        console.log("user amount", user.amount);
 
         return (getStakingMultiplier(_user) * (user.amount * _accRewardTokenPerShare / ACC_REWARD_PER_SHARE_PRECISION) / MULTIPLIER_PRECISION - user.rewardDebt[_token]);
     }
@@ -302,20 +239,12 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         if (_previousAmount != 0 && stakingMultiplier > 0) {
             for (uint256 i; i < _len; i++) {
                 IERC20 _token = rewardTokens[i];
-                console.log("accRewardPerShare[_token] b", accRewardPerShare[_token]);
                 updateReward(_token);
-                console.log("accRewardPerShare[_token] after", accRewardPerShare[_token]);
 
                 uint256 _pending = (stakingMultiplier * _previousAmount * accRewardPerShare[_token] / ACC_REWARD_PER_SHARE_PRECISION) / MULTIPLIER_PRECISION - user.rewardDebt[_token];
                 user.rewardDebt[_token] = (stakingMultiplier * _newAmount * accRewardPerShare[_token] / ACC_REWARD_PER_SHARE_PRECISION) / MULTIPLIER_PRECISION;
 
                 if (_pending != 0) {
-                    if (treasuryRewardTotalRemainder[_token] > _pending) {
-                        treasuryRewardTotalRemainder[_token] -= _pending;
-                    } else {
-                        treasuryRewardTotalRemainder[_token] = 0;
-                    }
-                    claimedRewards[_token] += _pending;
                     safeTokenTransfer(_token, _msgSender(), _pending);
                     emit ClaimReward(_msgSender(), address(_token), _pending);
                 }
@@ -329,62 +258,6 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         internalTgtBalance = internalTgtBalance - _amount;
         tgt.safeTransfer(_msgSender(), _amount);
         emit Withdraw(_msgSender(), _amount);
-    }
-
-    function pendingTreasuryReward(IERC20 _token) public view returns (uint256) {
-        require(isRewardToken[_token], "TGTStaking: wrong reward token");
-
-        uint256 _totalTgt = internalTgtBalance;
-        uint256 _currRewardBalance = _token.balanceOf(address(this));
-        uint256 _rewardBalance = _token == tgt ? _currRewardBalance - _totalTgt : _currRewardBalance;
-        uint256 _accruedReward = _rewardBalance - treasuryRewardTotalRemainder[_token] + claimedRewards[_token];
-        console.log("treasury reward total", treasuryRewardTotalRemainder[_token]);
-        console.log("accrued reward", _accruedReward);
-        console.log("curr reward balance", _currRewardBalance);
-        console.log("reward balance", _rewardBalance);
-        console.log("total tgt", _totalTgt);
-
-        return (_accruedReward * treasuryFeePercentage / 1e18);
-    }
-
-    function treasuryClaim() external nonReentrant {
-        require(owner() == _msgSender() || treasury == _msgSender(), "Caller is not the owner or treasury");
-        uint256 _totalTgt = internalTgtBalance;
-
-        uint256 _len = rewardTokens.length;
-        for (uint256 i; i < _len; i++) {
-            IERC20 _token = rewardTokens[i];
-
-            uint256 _accRewardTokenPerShare = accRewardPerShare[_token];
-            uint256 _currRewardBalance = _token.balanceOf(address(this));
-            uint256 _rewardBalance = _token == tgt ? _currRewardBalance - _totalTgt : _currRewardBalance;
-            uint256 _accruedReward = _rewardBalance - treasuryRewardTotalRemainder[_token] + claimedRewards[_token];
-
-            _accRewardTokenPerShare = _accRewardTokenPerShare +
-                (((_accruedReward * ACC_REWARD_PER_SHARE_PRECISION / _totalTgt) * treasuryFeePercentage) / 1e18);
-
-//            console.log("acc reward per share", _accRewardTokenPerShare);
-            uint256 _pending = _accruedReward * treasuryFeePercentage / 1e18;
-//            console.log("pending treasury reward", _pending);
-            treasuryRewardTotalRemainder[_token] += _rewardBalance - _pending;
-            treasuryRewardClaimed[_token] += _pending;
-            if (_pending != 0) {
-                safeTokenTransfer(_token, treasury, _pending);
-                emit ClaimTreasuryReward(treasury, address(_token), _pending);
-            }
-        }
-    }
-
-    function updateTreasury(address _treasury) external nonReentrant {
-        require(owner() == _msgSender() || treasury == _msgSender(), "Caller is not the owner or treasury");
-        treasury = _treasury;
-    }
-
-    function updateTreasuryPercentage(uint256 _treasuryFeePercentage) external nonReentrant {
-        require(owner() == _msgSender() || treasury == _msgSender(), "Caller is not the owner or treasury");
-
-        require(_treasuryFeePercentage <= 5e17, "TGTStaking: max treasury fee can't be greater than 50%");
-        treasuryFeePercentage = _treasuryFeePercentage;
     }
 
     /**
@@ -427,8 +300,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         uint256 _accruedReward = _rewardBalance - lastRewardBalance[_token];
 
         accRewardPerShare[_token] = accRewardPerShare[_token] +
-            (_accruedReward * ACC_REWARD_PER_SHARE_PRECISION / _totalTgt) -
-            (((_accruedReward * ACC_REWARD_PER_SHARE_PRECISION / _totalTgt) * treasuryFeePercentage) / 1e18);
+            (_accruedReward * ACC_REWARD_PER_SHARE_PRECISION / _totalTgt);
 
         lastRewardBalance[_token] = _rewardBalance;
     }
