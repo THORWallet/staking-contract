@@ -805,6 +805,8 @@ describe("TGT Staking", function () {
                 tgtMaker
             } = await loadFixture(deployFixture);
 
+            await tgtStaking.connect(dev).setDepositFeePercent(utils.parseEther("0"));
+
             for (let i = 0; i < 200; i++) {
                 const signer = new ethers.Wallet.createRandom().connect(ethers.provider);
                 await dev.sendTransaction({to: signer.address, value: utils.parseEther("0.1")});
