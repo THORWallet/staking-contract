@@ -845,6 +845,81 @@ describe("TGT Staking", function () {
 
         }).timeout(1000000);
 
+        it.only("pending reward should be updated for all stakers when there is a new deposit of reward tokens", async function () {
+
+            const {
+                tgtStaking,
+                tgt,
+                rewardToken,
+                alice,
+                dev,
+                bob,
+                carol,
+                tgtMaker
+            } = await loadFixture(deployFixture);
+
+            await tgtStaking.connect(alice).deposit(utils.parseEther("100"));
+            await tgtStaking.connect(bob).deposit(utils.parseEther("100"));
+            await increase(86400 * 7);
+            await rewardToken.connect(tgtMaker).transfer(tgtStaking.address, utils.parseEther("100"));
+
+            console.log("Reward pool balance: ", utils.formatEther(await rewardToken.balanceOf(tgtStaking.address)));
+            console.log("accRewardPerShare: ", utils.formatEther(await tgtStaking.accRewardPerShare(rewardToken.address)));
+
+            console.log("Staking multiplier for Alice: " + utils.formatEther(await tgtStaking.getStakingMultiplier(alice.address)));
+            console.log("Pending reward for Alice: " + utils.formatEther((await tgtStaking.pendingReward(alice.address, rewardToken.address))));
+            console.log("--------------------------------------");
+            console.log("Staking multiplier for Bob: " + utils.formatEther(await tgtStaking.getStakingMultiplier(bob.address)));
+            console.log("Pending reward for Bob: " + utils.formatEther(await tgtStaking.pendingReward(bob.address, rewardToken.address)));
+            console.log("--------------------------------------");
+
+            await tgtStaking.connect(alice).withdraw(utils.parseEther("50"));
+            expect(await rewardToken.balanceOf(alice.address)).to.be.closeTo(
+                utils.parseEther("25"),
+                utils.parseEther("0.0001")
+            );
+            await tgtStaking.connect(bob).withdraw(utils.parseEther("0"));
+            expect(await rewardToken.balanceOf(bob.address)).to.be.closeTo(
+                utils.parseEther("25"),
+                utils.parseEther("0.0001")
+            );
+
+            expect(await tgtStaking.pendingReward(alice.address, rewardToken.address)).to.be.equal(utils.parseEther("0"));
+            expect(await tgtStaking.pendingReward(bob.address, rewardToken.address)).to.be.equal(utils.parseEther("0"));
+
+            increase(86400 * 7);
+
+            await rewardToken.connect(tgtMaker).transfer(tgtStaking.address, utils.parseEther("100"));
+
+            console.log("Reward pool balance: ", utils.formatEther(await rewardToken.balanceOf(tgtStaking.address)));
+            console.log("Staking multiplier for Alice: " + utils.formatEther(await tgtStaking.getStakingMultiplier(alice.address)));
+            console.log("Pending reward for Alice: " + utils.formatEther((await tgtStaking.pendingReward(alice.address, rewardToken.address))));
+            console.log("--------------------------------------");
+            console.log("Staking multiplier for Bob: " + utils.formatEther(await tgtStaking.getStakingMultiplier(bob.address)));
+            console.log("Pending reward for Bob: " + utils.formatEther(await tgtStaking.pendingReward(bob.address, rewardToken.address)));
+            console.log("--------------------------------------");
+
+            expect(await tgtStaking.pendingReward(alice.address, rewardToken.address)).to.be.equal(utils.parseEther("16.666666666666666666"));
+            expect(await tgtStaking.pendingReward(bob.address, rewardToken.address)).to.be.equal(utils.parseEther("34.464999999999999999"));
+
+            await tgtStaking.connect(alice).withdraw(utils.parseEther("50"));
+            await tgtStaking.connect(bob).withdraw(utils.parseEther("0"));
+
+            expect(await rewardToken.balanceOf(alice.address)).to.be.closeTo(
+                utils.parseEther("41.666"),
+                utils.parseEther("0.001")
+            );
+            expect(await rewardToken.balanceOf(bob.address)).to.be.closeTo(
+                utils.parseEther("59.465"),
+                utils.parseEther("0.001")
+            );
+
+            console.log("Reward balance after all withdrawals: ", utils.formatEther(await rewardToken.balanceOf(tgtStaking.address)));
+            console.log("Reward balance Alice: ", utils.formatEther(await rewardToken.balanceOf(alice.address)));
+            console.log("Reward balance Bob: ", utils.formatEther(await rewardToken.balanceOf(bob.address)));
+
+        });
+
     });
 
     after(async function () {

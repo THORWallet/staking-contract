@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-//import "hardhat/console.sol";
+import "hardhat/console.sol";
 
 /**
  * @title TGT Staking
@@ -219,7 +219,15 @@ contract TGTStaking is Ownable, ReentrancyGuard {
                 (_accruedReward * ACC_REWARD_PER_SHARE_PRECISION / _totalTgt);
         }
 
-        return (getStakingMultiplier(_user) * (user.amount * _accRewardTokenPerShare / ACC_REWARD_PER_SHARE_PRECISION) / MULTIPLIER_PRECISION - user.rewardDebt[_token]);
+        console.log("accRewardTokenPerShare: %s", _accRewardTokenPerShare);
+        console.log("user.amount: %s", user.amount);
+        console.log("user.rewardDebt[_token]: %s", user.rewardDebt[_token]);
+        console.log("getStakingMultiplier(_user): %s", getStakingMultiplier(_user));
+
+        if (getStakingMultiplier(_user) != 0) {
+            return ((getStakingMultiplier(_user) * (user.amount * _accRewardTokenPerShare / ACC_REWARD_PER_SHARE_PRECISION) / MULTIPLIER_PRECISION) - user.rewardDebt[_token]);
+        }
+        else return 0;
     }
 
     /**
@@ -252,7 +260,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         }
 
         if (_amount > 0) {
-            user.depositTimestamp = 0;
+            user.depositTimestamp = block.timestamp;
         }
 
         internalTgtBalance = internalTgtBalance - _amount;
