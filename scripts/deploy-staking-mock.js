@@ -42,7 +42,7 @@ async function main() {
         utils.parseEther("100"),
         utils.parseEther("100"),
         utils.parseEther("100"),
-        utils.parseEther("100"),
+        utils.parseEther("1000"),
         utils.parseEther("100"),
         utils.parseEther("100"),
     ];
@@ -61,8 +61,16 @@ async function main() {
 
     await rewardToken.mint(
         tgtStaking.address,
-        utils.parseEther("1000")
+        utils.parseUnits("1000", 6)
     );
+
+    await rewardToken.mint(
+        "0x400Fc9C7F01Df3aa919659De434E0c584e68CB29",
+        utils.parseUnits("10000", 6)
+    );
+
+    //delay for 15 seconds
+    await new Promise(resolve => setTimeout(resolve, 15000));
 
     await hre.run("verify:verify", {
         address: tgtStaking.address,
