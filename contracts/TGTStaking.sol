@@ -257,9 +257,13 @@ contract TGTStaking is Ownable, ReentrancyGuard {
                     //find unclaimed potential reward _amount
                     uint256 maxPotentialReward = (_previousAmount * accRewardPerShare[_token] / ACC_REWARD_PER_SHARE_PRECISION) - user.rewardDebt[_token];
                     //find the difference between potential reward and actual reward
+                    console.log("previousAmount: %s", _previousAmount);
+                    console.log("maxPotentialReward: %s", maxPotentialReward);
+                    console.log("_pending: %s", _pending);
                     uint256 unclaimedPotentialReward = maxPotentialReward - _pending;
-                    console.log("unclaimedPotentialReward: %s", unclaimedPotentialReward);
-                    unclaimedRewardForRedistribution[_token] += unclaimedPotentialReward;
+                    console.log("! new unclaimedPotentialReward: %s", unclaimedPotentialReward);
+                    unclaimedRewardForRedistribution[_token] = unclaimedPotentialReward;
+                    console.log("! total unclaimedRewardForRedistribution[_token]: %s", unclaimedRewardForRedistribution[_token]);
                 }
             }
         }
@@ -309,11 +313,12 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         if (_rewardBalance == lastRewardBalance[_token] || _totalTgt == 0) {
             return;
         }
+        console.log("unclaimedRewardForRedistribution[_token]: %s", unclaimedRewardForRedistribution[_token]);
 
 //        console.log("_rewardBalance: %s", _rewardBalance);
 //        console.log("lastRewardBalance[_token]: %s", lastRewardBalance[_token]);
         uint256 _accruedReward = _rewardBalance - lastRewardBalance[_token] + unclaimedRewardForRedistribution[_token];
-//        console.log("_accruedReward: %s", _accruedReward);
+        console.log("_accruedReward: %s", _accruedReward);
         unclaimedRewardForRedistribution[_token] = 0;
 
         accRewardPerShare[_token] = accRewardPerShare[_token] +
