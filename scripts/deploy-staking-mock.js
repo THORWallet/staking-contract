@@ -34,7 +34,8 @@ async function main() {
         "0x1eba67dad8441d516f9b8d8c954960bb147d4559",
         "0x400fc9c7f01df3aa919659de434e0c584e68cb29",
         "0x9Cca88385bE131a716f6224c77A7BCcf42fF2F8d",
-        "0x2aa6863228178ba68f9f30e3ed7528811843d964"
+        "0x2aa6863228178ba68f9f30e3ed7528811843d964",
+        "0x012ab5affb6db7ea90e89fa7d59445673840e5dc"
     ];
 
     const amounts = [
@@ -43,6 +44,7 @@ async function main() {
         utils.parseEther("100"),
         utils.parseEther("100"),
         utils.parseEther("1000"),
+        utils.parseEther("100"),
         utils.parseEther("100"),
         utils.parseEther("100"),
     ];
