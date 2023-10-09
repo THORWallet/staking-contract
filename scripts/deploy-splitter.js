@@ -16,15 +16,14 @@ async function main() {
     const treasury = signers[1];
     console.log('Deployer address: ' + (await deployer.getAddress()));
 
-
     const Splitter = await ethers.getContractFactory("Splitter");
     const TGTStaking = await ethers.getContractFactory("TGTStaking");
     const TGT = await ethers.getContractFactory("MockTGT");
     const USDC = await ethers.getContractFactory("USDC");
 
-    const tgt = TGT.attach("0x57ac959322Fb581f301CFC0Ee5B4adeBfced7b91");
-    const usdc = USDC.attach("0x4f165f29C42632B40187DfA70355A14fa56b217a");
-    const staking = TGTStaking.attach("0x69DDECAE7c9E6Ca0e836EBdC1Cb15330423Afec9");
+    const tgt = TGT.attach("0x54F0C74619019D3Ae0FeFfb0729513C3460c88B9");
+    const usdc = USDC.attach("0xD3C13600172446e5097AEc592102CCcd63D0ce5B");
+    const staking = TGTStaking.attach("0x64F7DB3dfa7604984D2dEb5922f9F6310C093B25");
 
     const splitter = await Splitter.deploy(
         tgt.address,

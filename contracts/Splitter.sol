@@ -21,12 +21,22 @@ contract Splitter is PaymentSplitter, Ownable {
     }
 
     //TODO maybe make this onlyOwner or Treasury
-    function releaseFunds() public onlyOwner {
+    function releaseAllFunds() public onlyOwner {
         release(IERC20(tgt), treasury);
         release(IERC20(usdc), treasury);
 
         release(IERC20(tgt), stakingContract);
         release(IERC20(usdc), stakingContract);
+    }
+
+    function releaseUsdcFunds() public onlyOwner {
+        release(IERC20(usdc), treasury);
+        release(IERC20(usdc), stakingContract);
+    }
+
+    function releaseTgtFunds() public onlyOwner {
+        release(IERC20(tgt), treasury);
+        release(IERC20(tgt), stakingContract);
     }
 
 }

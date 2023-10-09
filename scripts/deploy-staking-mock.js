@@ -75,13 +75,6 @@ async function main() {
     await new Promise(resolve => setTimeout(resolve, 15000));
 
     await hre.run("verify:verify", {
-        address: tgtStaking.address,
-        constructorArguments: [rewardToken.address, tgt.address],
-    })
-
-    console.log("Staking was verified successfully")
-
-    await hre.run("verify:verify", {
         address: tgt.address,
         constructorArguments: [],
     })
@@ -90,6 +83,13 @@ async function main() {
         address: rewardToken.address,
         constructorArguments: [],
     })
+
+    await hre.run("verify:verify", {
+        address: tgtStaking.address,
+        constructorArguments: [rewardToken.address, tgt.address],
+    })
+
+    console.log("Staking contract was verified successfully")
 
 }
 
