@@ -21,15 +21,17 @@ async function main() {
     const TGT = await ethers.getContractFactory("MockTGT");
     const USDC = await ethers.getContractFactory("USDC");
 
-    const tgt = TGT.attach("0x54F0C74619019D3Ae0FeFfb0729513C3460c88B9");
-    const usdc = USDC.attach("0xD3C13600172446e5097AEc592102CCcd63D0ce5B");
-    const staking = TGTStaking.attach("0x64F7DB3dfa7604984D2dEb5922f9F6310C093B25");
+    const tgt = TGT.attach("0x108a850856Db3f85d0269a2693D896B394C80325");
+    const usdc = USDC.attach("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48");
+    const staking = TGTStaking.attach("0x4d6b9244cBCd6474a269393e14e8Df72972b3577");
+
+    console.log("Deploying splitter contract");
 
     const splitter = await Splitter.deploy(
         tgt.address,
         usdc.address,
         [staking.address,
-            treasury.address],
+            treasury],
         [utils.parseEther("0.5"),
             utils.parseEther("0.5")]
     );
@@ -45,7 +47,7 @@ async function main() {
         constructorArguments: [tgt.address,
             usdc.address,
             [staking.address,
-                treasury.address],
+                treasury],
             [utils.parseEther("0.5"),
                 utils.parseEther("0.5")]],
     })
