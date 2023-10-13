@@ -37,6 +37,12 @@ module.exports = {
                 mnemonic: process.env.MNEMONIC
             },
             gasPrice: 200000000000
+        },
+        ethereum: {
+            url: "https://mainnet.infura.io/v3/" + process.env.INFURA_API_KEY,
+            accounts: {
+                mnemonic: process.env.MNEMONIC
+            }
         }
     },
     solidity: {

@@ -13,7 +13,7 @@ async function main() {
     console.log(`Running deploy script for the payment splitter contract`)
     const signers = await ethers.getSigners();
     const deployer = signers[0];
-    const treasury = signers[1];
+    const treasury = "0xCF23e5020497cE7129c02041FCceF9A0BA5e6554";
     console.log('Deployer address: ' + (await deployer.getAddress()));
 
     const Splitter = await ethers.getContractFactory("Splitter");
