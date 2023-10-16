@@ -1,6 +1,3 @@
-/*
-  yarn deploy --script deploy-staking-mock.ts
-*/
 
 
 const hre = require("hardhat");
@@ -37,6 +34,7 @@ const bot = async () => {
 
         //Checks for a release of funds only after 12 hours of the last withdrawal
         if (getCurrentTimestamp() > lastWithdrawalTimestamp + (12 * 3600)) {
+            //Triggers a release of funds if the balance of the Splitter contract is greater than 2000 TGT or 20 USDC
             if (tgtBalance.gt(ethers.utils.parseUnits("2000"), 18) || usdcBalance.gt(ethers.utils.parseUnits("20", 6))) {
                 if (tgtBalance.gt(0) && usdcBalance.gt(0)) {
                     console.log("Releasing funds");
