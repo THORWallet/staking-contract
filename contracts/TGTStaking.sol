@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "hardhat/console.sol";
 
 /**
  * @title TGT Staking
@@ -260,7 +259,6 @@ contract TGTStaking is Ownable, ReentrancyGuard {
                 }
 
                 user.rewardDebt[_token] = (stakingMultiplier * _newAmount * accRewardPerShare[_token] / ACC_REWARD_PER_SHARE_PRECISION) / MULTIPLIER_PRECISION;
-
             }
         }
 
