@@ -2,13 +2,13 @@
 
 pragma solidity ^0.8.0;
 
-import "./IERC777.sol";
-import "./IERC777Recipient.sol";
-import "./IERC777Sender.sol";
-import "./IERC20.sol";
-import "./Address.sol";
-import "./Context.sol";
-import "./IERC1820Registry.sol";
+import "@openzeppelin/contracts/utils/Context.sol";
+import "@openzeppelin/contracts/token/ERC777/IERC777.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/Address.sol";
+import "@openzeppelin/contracts/utils/introspection/IERC1820Registry.sol";
+import "@openzeppelin/contracts/token/ERC777/IERC777Recipient.sol";
+import "@openzeppelin/contracts/token/ERC777/IERC777Sender.sol";
 
 /**
  * @dev Implementation of the {IERC777} interface.

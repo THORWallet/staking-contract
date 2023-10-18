@@ -1,5 +1,3 @@
-
-
 const hre = require("hardhat");
 const {utils, getDefaultProvider} = require("ethers");
 const {ethers} = require("hardhat");
@@ -7,7 +5,7 @@ const {getCurrentTimestamp} = require("hardhat/internal/hardhat-network/provider
 require("dotenv").config();
 let lastWithdrawalTimestamp = 0;
 
-const bot = async () => {
+async function main() {
     getDefaultProvider().on("block", async () => {
         console.log("Listening new block, waiting..)");
 
@@ -23,7 +21,7 @@ const bot = async () => {
         usdcAddress = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
         tgtAddress = "0x108a850856Db3f85d0269a2693D896B394C80325";
 
-        const tgt = await ethers.getContractAt("TGT", tgtAddress);
+        const tgt = await ethers.getContractAt("contracts/mocks/TGT.sol:TGT", tgtAddress);
         const usdc = await ethers.getContractAt("USDC", usdcAddress);
 
         const tgtBalance = await tgt.balanceOf(splitter.address);
@@ -35,7 +33,7 @@ const bot = async () => {
         //Checks for a release of funds only after 12 hours of the last withdrawal
         if (getCurrentTimestamp() > lastWithdrawalTimestamp + (12 * 3600)) {
             //Triggers a release of funds if the balance of the Splitter contract is greater than 2000 TGT or 20 USDC
-            if (tgtBalance.gt(ethers.utils.parseUnits("2000"), 18) || usdcBalance.gt(ethers.utils.parseUnits("20", 6))) {
+            if (tgtBalance.gt(ethers.utils.parseUnits("20"), 18) || usdcBalance.gt(ethers.utils.parseUnits("20", 6))) {
                 if (tgtBalance.gt(0) && usdcBalance.gt(0)) {
                     console.log("Releasing funds");
                     const tx = await splitter.releaseAllFunds();
@@ -53,7 +51,18 @@ const bot = async () => {
                     }
                 }
                 lastWithdrawalTimestamp = getCurrentTimestamp();
+            } else {
+                console.log("No funds to release");
             }
+        } else {
+            console.log("The last withdrawal was less than 12 hours ago");
         }
     })
 }
+
+// We recommend this pattern to be able to use async/await everywhere
+// and properly handle errors.
+main().catch((error) => {
+    console.error(error);
+    process.exitCode = 1;
+});
