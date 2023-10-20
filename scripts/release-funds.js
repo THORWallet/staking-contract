@@ -16,7 +16,7 @@ async function main() {
         console.log('Bot address: ' + (await deployer.getAddress()));
 
         const Splitter = await ethers.getContractFactory("Splitter");
-        const splitter = await Splitter.attach('0x724C13E376Aa9b506fA5263463f3c780B36Bd79C');
+        const splitter = await Splitter.attach('0x62e26f6f7B253dDA4e2899eC7A85886D3041347c');
 
         usdcAddress = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
         tgtAddress = "0x108a850856Db3f85d0269a2693D896B394C80325";

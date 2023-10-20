@@ -23,7 +23,7 @@ async function main() {
 
     const tgt = TGT.attach("0x108a850856Db3f85d0269a2693D896B394C80325");
     const usdc = USDC.attach("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48");
-    const staking = TGTStaking.attach("0x4d6b9244cBCd6474a269393e14e8Df72972b3577");
+    const staking = TGTStaking.attach("0x2bd7Ec577be3C9e8fD04012E96b4DFFA945DA43e");
 
     console.log("Deploying splitter contract");
 
