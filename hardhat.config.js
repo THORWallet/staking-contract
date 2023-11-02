@@ -6,6 +6,7 @@ require("@nomiclabs/hardhat-waffle");
 require("hardhat-gas-reporter");
 require('catapulta/hardhat');
 require('@nomicfoundation/hardhat-verify');
+require('@openzeppelin/hardhat-upgrades');
 require('dotenv').config();
 
 
@@ -46,28 +47,39 @@ module.exports = {
         }
     },
     solidity: {
-        version: "0.8.19",
-        settings: {
-            optimizer: {
-                enabled: true,
-                runs: 800
+        compilers: [{
+            version: "0.8.19",
+            settings: {
+                optimizer: {
+                    enabled: true,
+                    runs: 800
+                }
             }
+        },
+            {
+                version: "0.7.6",
+                settings: {
+                    optimizer: {
+                        enabled: true,
+                        runs: 800
+                    }
+                }
+            }
+        ],
+    },
+        gasReporter: {
+            currency: "USD",
+            token: "ETH",
+            gasPrice: 15,
+            // gasPriceApi:
+            //     "https://api.etherscan.com/api?module=proxy&action=eth_gasPrice&apikey=" + process.env.ETHERSCAN_API_KEY,
+            enabled: process.env.REPORT_GAS,
+            excludeContracts: [],
+            src: "./contracts",
+            coinmarketcap: process.env.COINMARKETCAP_API_KEY
+        },
+
+        etherscan: {
+            apiKey: process.env.ETHERSCAN_API_KEY
         }
-    },
-
-    gasReporter: {
-        currency: "USD",
-        token: "ETH",
-        gasPrice: 15,
-        // gasPriceApi:
-        //     "https://api.etherscan.com/api?module=proxy&action=eth_gasPrice&apikey=" + process.env.ETHERSCAN_API_KEY,
-        enabled: process.env.REPORT_GAS,
-        excludeContracts: [],
-        src: "./contracts",
-        coinmarketcap: process.env.COINMARKETCAP_API_KEY
-    },
-
-    etherscan: {
-        apiKey: process.env.ETHERSCAN_API_KEY
-    }
-};
+    };

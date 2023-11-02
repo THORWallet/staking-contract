@@ -6,6 +6,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "hardhat/console.sol";
 
 /**
  * @title TGT Staking
@@ -120,10 +121,12 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         uint256 _len = rewardTokens.length;
         for (uint256 i; i < _len; i++) {
             IERC20 _token = rewardTokens[i];
-            updateReward(_token);
+
+            uint256 stakingMultiplier = getStakingMultiplier(_msgSender());
+            bool specialCase = _previousAmount != 0 && stakingMultiplier == 0;
+            updateReward(_token, specialCase, _amount);
 
             uint256 _previousRewardDebt = user.rewardDebt[_token];
-            uint256 stakingMultiplier = getStakingMultiplier(_msgSender());
             user.rewardDebt[_token] = (stakingMultiplier * (_newAmount * accRewardPerShare[_token] / ACC_REWARD_PER_SHARE_PRECISION)) / MULTIPLIER_PRECISION;
 
             if (_previousAmount != 0 && stakingMultiplier > 0) {
@@ -173,7 +176,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         require(rewardTokens.length < 25, "TGTStaking: list of token too big");
         rewardTokens.push(_rewardToken);
         isRewardToken[_rewardToken] = true;
-        updateReward(_rewardToken);
+        updateReward(_rewardToken, false, 0);
         emit RewardTokenAdded(address(_rewardToken));
     }
 
@@ -183,7 +186,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
      */
     function removeRewardToken(IERC20 _rewardToken) external nonReentrant onlyOwner {
         require(isRewardToken[_rewardToken], "TGTStaking: token can't be removed");
-        updateReward(_rewardToken);
+        updateReward(_rewardToken, false, 0);
         isRewardToken[_rewardToken] = false;
         uint256 _len = rewardTokens.length;
         lastRewardBalance[_rewardToken] = 0;
@@ -240,7 +243,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         if (_previousAmount != 0 && stakingMultiplier > 0) {
             for (uint256 i; i < _len; i++) {
                 IERC20 _token = rewardTokens[i];
-                updateReward(_token);
+                updateReward(_token, false, 0);
 
                 uint256 _pending = (stakingMultiplier * _previousAmount * accRewardPerShare[_token] / ACC_REWARD_PER_SHARE_PRECISION) / MULTIPLIER_PRECISION - user.rewardDebt[_token];
 
@@ -296,7 +299,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
      * @param _token The address of the reward token
      * @dev Needs to be called before any deposit or withdrawal
      */
-    function updateReward(IERC20 _token) public {
+    function updateReward(IERC20 _token, bool specialCase, uint256 newDepositAmount) public {
         require(isRewardToken[_token], "TGTStaking: wrong reward token");
         uint256 _totalTgt = internalTgtBalance;
         uint256 _currRewardBalance = _token.balanceOf(address(this));
@@ -311,6 +314,16 @@ contract TGTStaking is Ownable, ReentrancyGuard {
 
         uint256 _accruedReward = _rewardBalance - lastRewardBalance[_token] + unclaimedRewardForRedistribution[_token];
         unclaimedRewardForRedistribution[_token] = 0;
+
+        if(specialCase){
+            accRewardPerShare[_token] =
+                ( _rewardBalance * ACC_REWARD_PER_SHARE_PRECISION / (_totalTgt + newDepositAmount));
+//                    +
+//                (_accruedReward * ACC_REWARD_PER_SHARE_PRECISION / (_totalTgt + newDepositAmount));
+            lastRewardBalance[_token] = _rewardBalance;
+            return;
+        }
+
         accRewardPerShare[_token] = accRewardPerShare[_token] +
             (_accruedReward * ACC_REWARD_PER_SHARE_PRECISION / _totalTgt);
         lastRewardBalance[_token] = _rewardBalance;
