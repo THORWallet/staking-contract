@@ -1376,6 +1376,59 @@ describe("TGT Staking", function () {
 
         });
 
+        it("Pending rewards can't exceed the reward pool when remittance is sent before large depositors with existing stakers with multipliers", async function () {
+
+            const {
+                tgtStaking,
+                tgt,
+                rewardToken,
+                alice,
+                bob,
+                carol,
+                tgtMaker,
+                joe
+            } = await loadFixture(deployFixture);
+
+            await tgt.connect(joe).transfer(carol.address, utils.parseEther("3000"));
+            await tgt.connect(joe).transfer(bob.address, utils.parseEther("1100"));
+
+            await tgtStaking.connect(alice).deposit(utils.parseEther("10"));
+            await tgtStaking.connect(bob).deposit(utils.parseEther("10"));
+            await rewardToken.connect(tgtMaker).transfer(tgtStaking.address, utils.parseEther("100"));
+
+            await increase(86400 * 10);
+
+            await tgtStaking.connect(bob).deposit(utils.parseEther("100"));
+
+            await tgtStaking.connect(carol).deposit(utils.parseEther("10"));
+            await rewardToken.connect(tgtMaker).transfer(tgtStaking.address, utils.parseEther("100"));
+            await tgtStaking.connect(carol).deposit(utils.parseEther("2858"));
+
+            await increase(86400 * 10);
+
+            console.log("Reward pool balance: ", utils.formatEther(await rewardToken.balanceOf(tgtStaking.address)));
+
+
+            console.log("Reward pool balance: ", utils.formatEther(await rewardToken.balanceOf(tgtStaking.address)));
+
+            console.log("Staking multiplier for Alice: " + utils.formatEther(await tgtStaking.getStakingMultiplier(alice.address)));
+            console.log("Pending reward for Alice: " + utils.formatUnits(await tgtStaking.pendingReward(alice.address, rewardToken.address), 18));
+            console.log("--------------------------------------");
+            console.log("Staking multiplier for Bob: " + utils.formatEther(await tgtStaking.getStakingMultiplier(bob.address)));
+            console.log("Pending reward for Bob: " + utils.formatUnits(await tgtStaking.pendingReward(bob.address, rewardToken.address), 18));
+            console.log("--------------------------------------");
+            console.log("Staking multiplier for Carol: " + utils.formatEther(await tgtStaking.getStakingMultiplier(carol.address)));
+            console.log("Pending reward for Carol: " + utils.formatUnits(await tgtStaking.pendingReward(carol.address, rewardToken.address), 18));
+
+            //Total pending reward amount can't exceed the reward pool balance
+            expect((await tgtStaking.pendingReward(alice.address, rewardToken.address))
+                .add(await tgtStaking.pendingReward(bob.address, rewardToken.address))
+                .add(await tgtStaking.pendingReward(carol.address, rewardToken.address))
+            ).to.be.lte(await rewardToken.balanceOf(tgtStaking.address));
+
+        });
+
+
     });
 
     after(async function () {

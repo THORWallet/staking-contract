@@ -127,6 +127,15 @@ contract TGTStaking is Ownable, ReentrancyGuard {
             updateReward(_token, specialCase, _amount);
 
             uint256 _previousRewardDebt = user.rewardDebt[_token];
+//
+//            uint256 accRewardPerShare = accRewardPerShare[_token];
+//            uint256 _currRewardBalance = _token.balanceOf(address(this));
+//            uint256 _rewardBalance = _token == tgt ? _currRewardBalance - internalTgtBalance : _currRewardBalance;
+//
+//
+//            if (specialCase) {
+//                accRewardPerShare = (_rewardBalance * ACC_REWARD_PER_SHARE_PRECISION / (internalTgtBalance + _amount));
+//            }
             user.rewardDebt[_token] = (stakingMultiplier * (_newAmount * accRewardPerShare[_token] / ACC_REWARD_PER_SHARE_PRECISION)) / MULTIPLIER_PRECISION;
 
             if (_previousAmount != 0 && stakingMultiplier > 0) {
@@ -221,7 +230,9 @@ contract TGTStaking is Ownable, ReentrancyGuard {
                 (_accruedReward * ACC_REWARD_PER_SHARE_PRECISION / _totalTgt);
         }
         if (getStakingMultiplier(_user) != 0) {
-            return ((getStakingMultiplier(_user) * (user.amount * _accRewardTokenPerShare / ACC_REWARD_PER_SHARE_PRECISION) / MULTIPLIER_PRECISION) - user.rewardDebt[_token]);
+            uint256 reward = (getStakingMultiplier(_user) * (user.amount * _accRewardTokenPerShare / ACC_REWARD_PER_SHARE_PRECISION) / MULTIPLIER_PRECISION);
+            if (reward < user.rewardDebt[_token]) return 0;
+            else return (reward - user.rewardDebt[_token]);
         }
         else return 0;
     }
@@ -315,11 +326,8 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         uint256 _accruedReward = _rewardBalance - lastRewardBalance[_token] + unclaimedRewardForRedistribution[_token];
         unclaimedRewardForRedistribution[_token] = 0;
 
-        if(specialCase){
-            accRewardPerShare[_token] =
-                ( _rewardBalance * ACC_REWARD_PER_SHARE_PRECISION / (_totalTgt + newDepositAmount));
-//                    +
-//                (_accruedReward * ACC_REWARD_PER_SHARE_PRECISION / (_totalTgt + newDepositAmount));
+        if (specialCase) {
+            accRewardPerShare[_token] = (_rewardBalance * ACC_REWARD_PER_SHARE_PRECISION / (_totalTgt + newDepositAmount));
             lastRewardBalance[_token] = _rewardBalance;
             return;
         }
