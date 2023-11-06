@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "hardhat/console.sol";
+//import "hardhat/console.sol";
 
 /**
  * @title TGT Staking
@@ -127,15 +127,6 @@ contract TGTStaking is Ownable, ReentrancyGuard {
             updateReward(_token, specialCase, _amount);
 
             uint256 _previousRewardDebt = user.rewardDebt[_token];
-//
-//            uint256 accRewardPerShare = accRewardPerShare[_token];
-//            uint256 _currRewardBalance = _token.balanceOf(address(this));
-//            uint256 _rewardBalance = _token == tgt ? _currRewardBalance - internalTgtBalance : _currRewardBalance;
-//
-//
-//            if (specialCase) {
-//                accRewardPerShare = (_rewardBalance * ACC_REWARD_PER_SHARE_PRECISION / (internalTgtBalance + _amount));
-//            }
             user.rewardDebt[_token] = (stakingMultiplier * (_newAmount * accRewardPerShare[_token] / ACC_REWARD_PER_SHARE_PRECISION)) / MULTIPLIER_PRECISION;
 
             if (_previousAmount != 0 && stakingMultiplier > 0) {
