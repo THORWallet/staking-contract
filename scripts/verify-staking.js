@@ -22,7 +22,7 @@ async function main() {
     const deployer = signers[0];
     console.log('Deployer address: ' + (await deployer.getAddress()));
 
-    const tgtStaking = await TGTStaking.attach('0x2bd7Ec577be3C9e8fD04012E96b4DFFA945DA43e');
+    const tgtStaking = await TGTStaking.attach('0x72975F0C029CAfFa8b22ee3B52AA9E2a95160Ea7');
 
     console.log('TGTStaking deployed to:', tgtStaking.address);
 
