@@ -173,7 +173,6 @@ describe("TGT Staking", function () {
             );
 
             // Making sure that `pendingReward` still return the accurate tokens even after updating pools
-            await tgtStaking.updateReward(rewardToken.address, false, 0);
             expect(await tgtStaking.pendingReward(alice.address, rewardToken.address)
             ).to.be.closeTo(utils.parseEther("0.5"), utils.parseEther("0.0001"));
 
@@ -184,7 +183,6 @@ describe("TGT Staking", function () {
             ).to.be.closeTo(utils.parseEther("1"), utils.parseEther("0.0001"));
 
             // Making sure that `pendingReward` still return the accurate tokens even after updating pools
-            await tgtStaking.updateReward(rewardToken.address, false, 0);
             expect(await tgtStaking.pendingReward(
                     alice.address,
                     rewardToken.address
@@ -214,7 +212,6 @@ describe("TGT Staking", function () {
             expect(await tgtStaking.pendingReward(alice.address, rewardToken.address)).to.be.closeTo(utils.parseEther("0.5"), utils.parseEther("0.0001"));
 
             // Making sure that `pendingReward` still return the accurate tokens even after updating pools
-            await tgtStaking.updateReward(rewardToken.address, false, 0);
             expect(
                 await tgtStaking.pendingReward(
                     alice.address,
@@ -233,7 +230,6 @@ describe("TGT Staking", function () {
             expect(await tgtStaking.pendingReward(alice.address, rewardToken.address)).to.be.closeTo(utils.parseEther("1"), utils.parseEther("0.0001"));
 
             // Making sure that `pendingReward` still return the accurate tokens even after updating pools
-            await tgtStaking.updateReward(rewardToken.address, false, 0);
             expect(await tgtStaking.pendingReward(alice.address, rewardToken.address)
             ).to.be.closeTo(utils.parseEther("1"), utils.parseEther("0.0001"));
 
@@ -259,7 +255,6 @@ describe("TGT Staking", function () {
             // console.log("Staking multiplier is now: " + (await tgtStaking.getStakingMultiplier(alice.address)).toString());
 
             await rewardToken.connect(tgtMaker).transfer(tgtStaking.address, utils.parseEther("6"));
-            await tgtStaking.updateReward(rewardToken.address, false, 0);
             // console.log("Reward pool balance: " + (await rewardToken.balanceOf(tgtStaking.address)).toString());
             console.log("Alice reward balance before claiming: " + (await rewardToken.balanceOf(alice.address)).toString());
             await tgtStaking.connect(alice).withdraw(utils.parseEther("97"));

@@ -124,7 +124,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
 
             uint256 stakingMultiplier = getStakingMultiplier(_msgSender());
             bool specialCase = _previousAmount != 0 && stakingMultiplier == 0;
-            updateReward(_token, specialCase, _amount);
+            _updateReward(_token, specialCase, _amount);
 
             uint256 _previousRewardDebt = user.rewardDebt[_token];
             user.rewardDebt[_token] = (stakingMultiplier * (_newAmount * accRewardPerShare[_token] / ACC_REWARD_PER_SHARE_PRECISION)) / MULTIPLIER_PRECISION;
@@ -176,7 +176,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         require(rewardTokens.length < 25, "TGTStaking: list of token too big");
         rewardTokens.push(_rewardToken);
         isRewardToken[_rewardToken] = true;
-        updateReward(_rewardToken, false, 0);
+        _updateReward(_rewardToken, false, 0);
         emit RewardTokenAdded(address(_rewardToken));
     }
 
@@ -186,7 +186,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
      */
     function removeRewardToken(IERC20 _rewardToken) external nonReentrant onlyOwner {
         require(isRewardToken[_rewardToken], "TGTStaking: token can't be removed");
-        updateReward(_rewardToken, false, 0);
+        _updateReward(_rewardToken, false, 0);
         isRewardToken[_rewardToken] = false;
         uint256 _len = rewardTokens.length;
         lastRewardBalance[_rewardToken] = 0;
@@ -245,7 +245,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         if (_previousAmount != 0 && stakingMultiplier > 0) {
             for (uint256 i; i < _len; i++) {
                 IERC20 _token = rewardTokens[i];
-                updateReward(_token, false, 0);
+                _updateReward(_token, false, 0);
 
                 uint256 _pending = (stakingMultiplier * _previousAmount * accRewardPerShare[_token] / ACC_REWARD_PER_SHARE_PRECISION) / MULTIPLIER_PRECISION - user.rewardDebt[_token];
 
@@ -301,7 +301,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
      * @param _token The address of the reward token
      * @dev Needs to be called before any deposit or withdrawal
      */
-    function updateReward(IERC20 _token, bool specialCase, uint256 newDepositAmount) public {
+    function _updateReward(IERC20 _token, bool specialCase, uint256 newDepositAmount) internal {
         require(isRewardToken[_token], "TGTStaking: wrong reward token");
         uint256 _totalTgt = internalTgtBalance;
         uint256 _currRewardBalance = _token.balanceOf(address(this));
@@ -356,6 +356,8 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         }
     }
 
+    /// @notice This function returns the staking multiplier based on the time passed since the user deposited
+    /// @param _user The address of the user
     function getStakingMultiplier(address _user) public view returns (uint256) {
         UserInfo storage user = userInfo[_user];
         if (user.depositTimestamp == 0) {
@@ -380,13 +382,13 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         return 0;
     }
 
+    /// @notice This function returns the part of a number based on the percentage(bps) given
     function calculatePart(uint256 amount, uint256 bps) public pure returns (uint256) {
         return amount * bps / 10_000;
     }
 
-    // This function returns how much percent 'part' is of 'whole'
-    // Note: The function returns an integer. For better precision, it multiplies the actual percentage by 100.
-    // For example, if the real percentage is 12.34%, the function will return 1234.
+    /// @notice  This function returns how much percent 'part' is of 'whole'
+    /// @dev For example, if the real percentage is 12.34%, the function will return 1234.
     function calculatePercentage(uint256 part, uint256 whole) public pure returns (uint256) {
         require(whole > 0, "Whole must be greater than zero");
 
@@ -394,8 +396,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         uint256 tempPart = part * 10 ** 4;
 
         // Divide by 'whole' and then multiply by 100 to get the percentage
-        uint256 percentage = (tempPart / whole) * 100;
-
-        return percentage / 100;
+        uint256 percentage = (tempPart / whole);
+        return percentage;
     }
 }

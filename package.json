@@ -21,7 +21,8 @@
     "hardhat": "^2.13.1",
     "hardhat-gas-reporter": "^1.0.9",
     "mem": ">=4.0.0",
-    "merkletreejs": "^0.2.24"
+    "merkletreejs": "^0.2.24",
+    "solhint": "^4.0.0"
   },
   "scripts": {
     "clean": "hardhat clean",
