@@ -220,8 +220,9 @@ contract TGTStaking is Ownable, ReentrancyGuard {
             _accRewardTokenPerShare = _accRewardTokenPerShare +
                 (_accruedReward * ACC_REWARD_PER_SHARE_PRECISION / _totalTgt);
         }
-        if (getStakingMultiplier(_user) != 0) {
-            uint256 reward = (getStakingMultiplier(_user) * (user.amount * _accRewardTokenPerShare / ACC_REWARD_PER_SHARE_PRECISION) / MULTIPLIER_PRECISION);
+        uint256 stakingMultiplier = getStakingMultiplier(_user);
+        if (stakingMultiplier != 0) {
+            uint256 reward = (stakingMultiplier * (user.amount * _accRewardTokenPerShare / ACC_REWARD_PER_SHARE_PRECISION) / MULTIPLIER_PRECISION);
             if (reward < user.rewardDebt[_token]) return 0;
             else return (reward - user.rewardDebt[_token]);
         }
@@ -269,11 +270,11 @@ contract TGTStaking is Ownable, ReentrancyGuard {
 
         if (_amount > 0) {
             user.depositTimestamp = block.timestamp;
-        }
 
-        internalTgtBalance = internalTgtBalance - _amount;
-        tgt.safeTransfer(_msgSender(), _amount);
-        emit Withdraw(_msgSender(), _amount);
+            internalTgtBalance = internalTgtBalance - _amount;
+            tgt.safeTransfer(_msgSender(), _amount);
+            emit Withdraw(_msgSender(), _amount);
+        }
     }
 
     /**
@@ -367,13 +368,13 @@ contract TGTStaking is Ownable, ReentrancyGuard {
 
         if (timeDiff >= 365 days) {
             return 1e18;
-        } else if (timeDiff >= (30 days * 6) && timeDiff < 365 days) {
+        } else if (timeDiff >= (30 days * 6)) {
             if (timeDiff > (30 days * 6)) {
                 return (75e16 + calculatePart(25e16, calculatePercentage(timeDiff - 30 days * 6, 30 days * 6)));
             }
             else return 75e16;
         }
-        else if (timeDiff >= 7 days && timeDiff < (30 days * 6)) {
+        else if (timeDiff >= 7 days) {
             if (timeDiff > 7 days) {
                 return (5e17 + calculatePart(25e16, calculatePercentage(timeDiff - 7 days, 30 days * 6)));
             }
