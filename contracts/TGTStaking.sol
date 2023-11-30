@@ -318,11 +318,11 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         uint256 _accruedReward = _rewardBalance - lastRewardBalance[_token] + unclaimedRewardForRedistribution[_token];
         unclaimedRewardForRedistribution[_token] = 0;
 
-        if (specialCase) {
-            accRewardPerShare[_token] = (_rewardBalance * ACC_REWARD_PER_SHARE_PRECISION / (_totalTgt + newDepositAmount));
-            lastRewardBalance[_token] = _rewardBalance;
-            return;
-        }
+//        if (specialCase) {
+//            accRewardPerShare[_token] = (_rewardBalance * ACC_REWARD_PER_SHARE_PRECISION / (_totalTgt + newDepositAmount));
+//            lastRewardBalance[_token] = _rewardBalance;
+//            return;
+//        }
 
         accRewardPerShare[_token] = accRewardPerShare[_token] +
             (_accruedReward * ACC_REWARD_PER_SHARE_PRECISION / _totalTgt);
