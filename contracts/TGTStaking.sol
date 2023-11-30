@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-//import "hardhat/console.sol";
+import "hardhat/console.sol";
 
 /**
  * @title TGT Staking
@@ -118,12 +118,13 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         uint256 _newAmount = user.amount + _amount;
         user.amount = _newAmount;
 
+        uint256 stakingMultiplier = getStakingMultiplier(_msgSender());
+        bool specialCase = _previousAmount != 0 && stakingMultiplier == 0;
+
         uint256 _len = rewardTokens.length;
         for (uint256 i; i < _len; i++) {
             IERC20 _token = rewardTokens[i];
 
-            uint256 stakingMultiplier = getStakingMultiplier(_msgSender());
-            bool specialCase = _previousAmount != 0 && stakingMultiplier == 0;
             _updateReward(_token, specialCase, _amount);
 
             uint256 _previousRewardDebt = user.rewardDebt[_token];
@@ -221,6 +222,12 @@ contract TGTStaking is Ownable, ReentrancyGuard {
                 (_accruedReward * ACC_REWARD_PER_SHARE_PRECISION / _totalTgt);
         }
         uint256 stakingMultiplier = getStakingMultiplier(_user);
+
+        console.log("stakingMultiplier: %s", stakingMultiplier);
+        console.log("user.amount: %s", user.amount);
+        console.log("_accRewardTokenPerShare: %s", _accRewardTokenPerShare);
+        console.log("user.rewardDebt[_token]: %s", user.rewardDebt[_token]);
+
         if (stakingMultiplier != 0) {
             uint256 reward = (stakingMultiplier * (user.amount * _accRewardTokenPerShare / ACC_REWARD_PER_SHARE_PRECISION) / MULTIPLIER_PRECISION);
             if (reward < user.rewardDebt[_token]) return 0;
@@ -318,11 +325,11 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         uint256 _accruedReward = _rewardBalance - lastRewardBalance[_token] + unclaimedRewardForRedistribution[_token];
         unclaimedRewardForRedistribution[_token] = 0;
 
-//        if (specialCase) {
-//            accRewardPerShare[_token] = (_rewardBalance * ACC_REWARD_PER_SHARE_PRECISION / (_totalTgt + newDepositAmount));
-//            lastRewardBalance[_token] = _rewardBalance;
-//            return;
-//        }
+        if (specialCase) {
+            accRewardPerShare[_token] = (_rewardBalance * ACC_REWARD_PER_SHARE_PRECISION / (_totalTgt + newDepositAmount));
+            lastRewardBalance[_token] = _rewardBalance;
+            return;
+        }
 
         accRewardPerShare[_token] = accRewardPerShare[_token] +
             (_accruedReward * ACC_REWARD_PER_SHARE_PRECISION / _totalTgt);
