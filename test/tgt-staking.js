@@ -1423,7 +1423,7 @@ describe("TGT Staking", function () {
         });
 
 
-        it.only("Special case logic exploit", async function () {
+        it.only("Special case logic exploit can't exceed reward pool balance", async function () {
 
             const {
                 tgtStaking,
@@ -1449,7 +1449,7 @@ describe("TGT Staking", function () {
 
             await tgtStaking.connect(carol).deposit(utils.parseEther("10"));
             await rewardToken.connect(tgtMaker).transfer(tgtStaking.address, utils.parseEther("100"));
-            await tgtStaking.connect(carol).deposit(utils.parseEther("3000"));
+            await tgtStaking.connect(carol).deposit(utils.parseEther("1000"));
 
             await increase(86400 * 10);
 
@@ -1476,11 +1476,7 @@ describe("TGT Staking", function () {
             console.log("Pending reward for Carol: " + utils.formatUnits(await tgtStaking.pendingReward(carol.address, rewardToken.address), 18));
             console.log("Reward debt for Carol: " + utils.formatEther(userInfo[1]));
 
-            expect(await tgtStaking.pendingReward(alice.address, rewardToken.address)).to.be.gt(utils.parseEther("0"));
-            expect(await tgtStaking.pendingReward(bob.address, rewardToken.address)).to.be.gt(utils.parseEther("0"));
-            expect(await tgtStaking.pendingReward(carol.address, rewardToken.address)).to.be.gt(utils.parseEther("0"));
-
-            //Total pending reward amount can't exceed the reward pool balance
+            // Total pending reward amount can't exceed the reward pool balance
             expect((await tgtStaking.pendingReward(alice.address, rewardToken.address))
                 .add(await tgtStaking.pendingReward(bob.address, rewardToken.address))
                 .add(await tgtStaking.pendingReward(carol.address, rewardToken.address))

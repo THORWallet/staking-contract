@@ -128,9 +128,10 @@ contract TGTStaking is Ownable, ReentrancyGuard {
             _updateReward(_token, specialCase, _amount);
 
             uint256 _previousRewardDebt = user.rewardDebt[_token];
-            user.rewardDebt[_token] = (stakingMultiplier * (_newAmount * accRewardPerShare[_token] / ACC_REWARD_PER_SHARE_PRECISION)) / MULTIPLIER_PRECISION;
 
             if (_previousAmount != 0 && stakingMultiplier > 0) {
+                user.rewardDebt[_token] = (stakingMultiplier * (_previousAmount * accRewardPerShare[_token] / ACC_REWARD_PER_SHARE_PRECISION)) / MULTIPLIER_PRECISION;
+
                 uint256 _pending = (stakingMultiplier * (_previousAmount * accRewardPerShare[_token] / ACC_REWARD_PER_SHARE_PRECISION) / MULTIPLIER_PRECISION - _previousRewardDebt);
                 if (_pending != 0) {
                     safeTokenTransfer(_token, _msgSender(), _pending);
@@ -230,6 +231,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
 
         if (stakingMultiplier != 0) {
             uint256 reward = (stakingMultiplier * (user.amount * _accRewardTokenPerShare / ACC_REWARD_PER_SHARE_PRECISION) / MULTIPLIER_PRECISION);
+            console.log("reward: %s", reward);
             if (reward < user.rewardDebt[_token]) return 0;
             else return (reward - user.rewardDebt[_token]);
         }
@@ -377,7 +379,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
             return 1e18;
         } else if (timeDiff >= (30 days * 6)) {
             if (timeDiff > (30 days * 6)) {
-                return (75e16 + calculatePart(25e16, calculatePercentage(timeDiff - 30 days * 6, 30 days * 6)));
+                return (75e16 + calculatePart(25e16, calculatePercentage(timeDiff - 30 days * 6, ((30 days * 6) + 5 days))));
             }
             else return 75e16;
         }
