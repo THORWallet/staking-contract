@@ -223,10 +223,10 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         }
         uint256 stakingMultiplier = getStakingMultiplier(_user);
 
-        console.log("stakingMultiplier: %s", stakingMultiplier);
-        console.log("user.amount: %s", user.amount);
-        console.log("_accRewardTokenPerShare: %s", _accRewardTokenPerShare);
-        console.log("user.rewardDebt[_token]: %s", user.rewardDebt[_token]);
+//        console.log("stakingMultiplier: %s", stakingMultiplier);
+//        console.log("user.amount: %s", user.amount);
+//        console.log("_accRewardTokenPerShare: %s", _accRewardTokenPerShare);
+//        console.log("user.rewardDebt[_token]: %s", user.rewardDebt[_token]);
 
         if (stakingMultiplier != 0) {
             uint256 reward = (stakingMultiplier * (user.amount * _accRewardTokenPerShare / ACC_REWARD_PER_SHARE_PRECISION) / MULTIPLIER_PRECISION);

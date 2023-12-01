@@ -1423,7 +1423,7 @@ describe("TGT Staking", function () {
         });
 
 
-        it("Special case logic exploit", async function () {
+        it.only("Special case logic exploit", async function () {
 
             const {
                 tgtStaking,
@@ -1460,18 +1460,21 @@ describe("TGT Staking", function () {
             console.log("Staking deposit for Alice: " + utils.formatEther(userInfo[0]));
             console.log("Staking multiplier for Alice: " + utils.formatEther(await tgtStaking.getStakingMultiplier(alice.address)));
             console.log("Pending reward for Alice: " + utils.formatUnits(await tgtStaking.pendingReward(alice.address, rewardToken.address), 18));
+            console.log("Reward debt for Alice: " + utils.formatEther(userInfo[1]));
 
             console.log("--------------------------------------");
             userInfo = await tgtStaking.getUserInfo(bob.address, rewardToken.address);
             console.log("Staking deposit for Bob: " + utils.formatEther(userInfo[0]));
             console.log("Staking multiplier for Bob: " + utils.formatEther(await tgtStaking.getStakingMultiplier(bob.address)));
             console.log("Pending reward for Bob: " + utils.formatUnits(await tgtStaking.pendingReward(bob.address, rewardToken.address), 18));
+            console.log("Reward debt for Bob: " + utils.formatEther(userInfo[1]));
 
             console.log("--------------------------------------");
             userInfo = await tgtStaking.getUserInfo(carol.address, rewardToken.address);
             console.log("Staking deposit for Carol: " + utils.formatEther(userInfo[0]));
             console.log("Staking multiplier for Carol: " + utils.formatEther(await tgtStaking.getStakingMultiplier(carol.address)));
             console.log("Pending reward for Carol: " + utils.formatUnits(await tgtStaking.pendingReward(carol.address, rewardToken.address), 18));
+            console.log("Reward debt for Carol: " + utils.formatEther(userInfo[1]));
 
             expect(await tgtStaking.pendingReward(alice.address, rewardToken.address)).to.be.gt(utils.parseEther("0"));
             expect(await tgtStaking.pendingReward(bob.address, rewardToken.address)).to.be.gt(utils.parseEther("0"));
