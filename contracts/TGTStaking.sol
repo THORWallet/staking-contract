@@ -128,9 +128,9 @@ contract TGTStaking is Ownable, ReentrancyGuard {
             _updateReward(_token, specialCase, _amount);
 
             uint256 _previousRewardDebt = user.rewardDebt[_token];
+            user.rewardDebt[_token] = (stakingMultiplier * (_newAmount * accRewardPerShare[_token] / ACC_REWARD_PER_SHARE_PRECISION)) / MULTIPLIER_PRECISION;
 
             if (_previousAmount != 0 && stakingMultiplier > 0) {
-                user.rewardDebt[_token] = (stakingMultiplier * (_previousAmount * accRewardPerShare[_token] / ACC_REWARD_PER_SHARE_PRECISION)) / MULTIPLIER_PRECISION;
 
                 uint256 _pending = (stakingMultiplier * (_previousAmount * accRewardPerShare[_token] / ACC_REWARD_PER_SHARE_PRECISION) / MULTIPLIER_PRECISION - _previousRewardDebt);
                 if (_pending != 0) {
@@ -231,7 +231,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
 
         if (stakingMultiplier != 0) {
             uint256 reward = (stakingMultiplier * (user.amount * _accRewardTokenPerShare / ACC_REWARD_PER_SHARE_PRECISION) / MULTIPLIER_PRECISION);
-            console.log("reward: %s", reward);
+//            console.log("reward: %s", reward);
             if (reward < user.rewardDebt[_token]) return 0;
             else return (reward - user.rewardDebt[_token]);
         }
