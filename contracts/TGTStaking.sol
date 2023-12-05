@@ -139,11 +139,10 @@ contract TGTStaking is Ownable, ReentrancyGuard {
                 minimalMultiplier = stakingMultiplier;
 
             user.rewardDebt[_token] = (minimalMultiplier * (_newAmount * accRewardPerShare[_token] / ACC_REWARD_PER_SHARE_PRECISION)) / MULTIPLIER_PRECISION;
-            user.maxRewardDebt[_token] = (1e18 * (_newAmount * accRewardPerShare[_token] / ACC_REWARD_PER_SHARE_PRECISION)) / MULTIPLIER_PRECISION;
+            user.maxRewardDebt[_token] = (_newAmount * accRewardPerShare[_token]) / ACC_REWARD_PER_SHARE_PRECISION;
 
             if (_previousAmount != 0 && stakingMultiplier > 0) {
-
-                uint256 _pending = (stakingMultiplier * (_previousAmount * accRewardPerShare[_token] / ACC_REWARD_PER_SHARE_PRECISION) / MULTIPLIER_PRECISION - _previousRewardDebt);
+                uint256 _pending = ((stakingMultiplier * _previousAmount * accRewardPerShare[_token]) / ACC_REWARD_PER_SHARE_PRECISION) / MULTIPLIER_PRECISION - _previousRewardDebt;
                 if (_pending != 0) {
                     safeTokenTransfer(_token, _msgSender(), _pending);
                     emit ClaimReward(_msgSender(), address(_token), _pending);
@@ -154,6 +153,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         internalTgtBalance = internalTgtBalance + _amount;
 
         tgt.safeTransferFrom(_msgSender(), address(this), _amount);
+        console.log("***** ***** ***** DEPOSIT: %s", _amount);
         emit Deposit(_msgSender(), _amount);
     }
 
@@ -220,20 +220,27 @@ contract TGTStaking is Ownable, ReentrancyGuard {
      * @return `_user`'s pending reward token
      */
     function pendingReward(address _user, IERC20 _token) external view returns (uint256) {
+        console.log(">>>> pendingReward <<<<<<");
         require(isRewardToken[_token], "TGTStaking: wrong reward token");
+
         UserInfo storage user = userInfo[_user];
         uint256 _totalTgt = internalTgtBalance;
         uint256 _accRewardTokenPerShare = accRewardPerShare[_token];
+
+        console.log("unclaimedRewardForRedistribution: %s", unclaimedRewardForRedistribution[_token]);
+        console.log("lastRewardBalance: %s", lastRewardBalance[_token]);
+        console.log("_token.balanceOf(address(this)): %s", _token.balanceOf(address(this)));
 
         uint256 _currRewardBalance = _token.balanceOf(address(this));
         uint256 _rewardBalance = _token == tgt ? _currRewardBalance - _totalTgt : _currRewardBalance;
         console.log("currRewardBalance: %s", _currRewardBalance);
         console.log("rewardBalance: %s", _rewardBalance);
+        console.log(">>>> >> > >lastRewardBalance[_token]: %s", lastRewardBalance[_token]);
 
         if (_rewardBalance != lastRewardBalance[_token] && _totalTgt != 0 || unclaimedRewardForRedistribution[_token] != 0) {
-            uint256 _accruedReward = _rewardBalance - lastRewardBalance[_token] + unclaimedRewardForRedistribution[_token];
-            console.log("accruedReward: %s", _accruedReward);
-            console.log("accRewardPerShare: %s", _accRewardTokenPerShare);
+            uint256 _accruedReward = (_rewardBalance + unclaimedRewardForRedistribution[_token]) - lastRewardBalance[_token];
+            console.log(">>>> >> > accruedReward: %s", _accruedReward);
+            console.log("     accRewardPerShare: %s", _accRewardTokenPerShare);
 
             console.log("lastRewardBalance: %s", lastRewardBalance[_token]);
             console.log("unclaimedRewardForRedistribution: %s", unclaimedRewardForRedistribution[_token]);
@@ -244,32 +251,35 @@ contract TGTStaking is Ownable, ReentrancyGuard {
 
         console.log("stakingMultiplier: %s", stakingMultiplier);
         console.log("user.amount: %s", user.amount);
-        console.log("_accRewardTokenPerShare: %s", _accRewardTokenPerShare);
-        console.log("111111111user.rewardDebt[_token]: %s", user.rewardDebt[_token]);
+        console.log("    _accRewardTokenPerShare: %s", _accRewardTokenPerShare);
+        console.log("user.maxRewardDebt[_token]: %s", user.maxRewardDebt[_token]);
+        console.log("user.rewardDebt[_token]: %s", user.rewardDebt[_token]);
 
         if (stakingMultiplier != 0) {
-            uint256 reward = (stakingMultiplier * (user.amount * _accRewardTokenPerShare / ACC_REWARD_PER_SHARE_PRECISION) / MULTIPLIER_PRECISION);
+            uint256 reward = ((stakingMultiplier * user.amount * _accRewardTokenPerShare) / ACC_REWARD_PER_SHARE_PRECISION) / MULTIPLIER_PRECISION;
             console.log("reward: %s", reward);
             if (reward <= user.rewardDebt[_token]) return 0;
             else {
-                if (user.rewardDebt[_token] == 0)
-                    return reward;
-                if (stakingMultiplier == 1e18)
-                    return (reward - user.maxRewardDebt[_token]);
-                uint256 debtFactor = (user.maxRewardDebt[_token] * stakingMultiplier) / MULTIPLIER_PRECISION;
-                console.log("!!!!!!!!!!!!!!++++++debtFactor: %s", debtFactor);
+//                if (user.rewardDebt[_token] == 0)
+//                    return reward;
+//                if (stakingMultiplier == 1e18)
+//                    return (reward - user.maxRewardDebt[_token]);
+//                if (stakingMultiplier == 5e17)
+//                return (reward - user.rewardDebt[_token]);
+//                uint256 debtFactor = (user.maxRewardDebt[_token] * stakingMultiplier) / MULTIPLIER_PRECISION;
+//                console.log("!!!!!!!!!!!!!!++++++debtFactor: %s", debtFactor);
 //                uint256 debt = user.maxRewardDebt[_token] - debtFactor;
-                console.log("maxRewardDebt: %s", user.maxRewardDebt[_token]);
-                console.log("user.rewardDebt[_token]: %s", user.rewardDebt[_token]);
+//                console.log("maxRewardDebt: %s", user.maxRewardDebt[_token]);
+//                console.log("user.rewardDebt[_token]: %s", user.rewardDebt[_token]);
 //                console.log("!!!!!!!!!!!!!!++++++debt: %s", debt);
-                console.log("!!!!!!!!!!!!!!++++++reward: %s", reward);
-                if (debtFactor > reward)
-                    return 0;
-                else{
-                    console.log("!!!!!!!!!!!!!!++++++reward - debtFactor: %s", reward - debtFactor);
-                    return reward - debtFactor;
-                }
-//                    return reward - user.rewardDebt[_token];
+//                console.log("!!!!!!!!!!!!!!++++++reward: %s", reward);
+//                if (debtFactor > reward)
+//                    return 0;
+//                else {
+//                    console.log("!!!!!!!!!!!!!!++++++reward - debtFactor: %s", reward - debtFactor);
+//                    return reward - debtFactor;
+//                }
+                    return reward - user.rewardDebt[_token];
             }
         }
         else return 0;
@@ -294,24 +304,33 @@ contract TGTStaking is Ownable, ReentrancyGuard {
                 IERC20 _token = rewardTokens[i];
                 _updateReward(_token, false, 0);
 
-                uint256 _pending = (stakingMultiplier * _previousAmount * accRewardPerShare[_token] / ACC_REWARD_PER_SHARE_PRECISION) / MULTIPLIER_PRECISION - user.rewardDebt[_token];
+                uint256 _pending = ((stakingMultiplier * _previousAmount * accRewardPerShare[_token]) / ACC_REWARD_PER_SHARE_PRECISION) / MULTIPLIER_PRECISION - user.rewardDebt[_token];
+
+                if (_amount > 0 && stakingMultiplier < 1e18) {
+
+                    //find the difference between max potential reward and given reward
+                    uint256 maxPotentialReward = (_previousAmount * accRewardPerShare[_token] / ACC_REWARD_PER_SHARE_PRECISION) - user.rewardDebt[_token];
+
+                    uint256 unclaimedPotentialReward = maxPotentialReward - _pending;
+                    unclaimedRewardForRedistribution[_token] += unclaimedPotentialReward;
+                    console.log("????????  _amount: %s", _amount);
+                    console.log("????????  _previousAmount: %s", _previousAmount);
+                    console.log("????????  accRewardPerShare[_token]: %s", accRewardPerShare[_token]);
+                    console.log("????????  stakingMultiplier: %s", stakingMultiplier);
+                    console.log("???????? user.rewardDebt[_token]: %s", user.rewardDebt[_token]);
+                    console.log("????????  _pending: %s", _pending);
+                    console.log("????????  maxPotentialReward: %s", maxPotentialReward);
+                    console.log("????????  unclaimedPotentialReward: %s", unclaimedPotentialReward);
+                    console.log("???????  unclaimedRewardForRedistribution: %s", unclaimedRewardForRedistribution[_token]);
+                }
+
+                user.rewardDebt[_token] = ((stakingMultiplier * _newAmount * accRewardPerShare[_token]) / ACC_REWARD_PER_SHARE_PRECISION) / MULTIPLIER_PRECISION;
+                user.maxRewardDebt[_token] = (_newAmount * accRewardPerShare[_token]) / ACC_REWARD_PER_SHARE_PRECISION;
 
                 if (_pending != 0) {
                     safeTokenTransfer(_token, _msgSender(), _pending);
                     emit ClaimReward(_msgSender(), address(_token), _pending);
                 }
-
-                if (_amount > 0 && stakingMultiplier < 1e18) {
-                    //find unclaimed potential reward _amount
-                    uint256 maxPotentialReward = (_previousAmount * accRewardPerShare[_token] / ACC_REWARD_PER_SHARE_PRECISION) - user.rewardDebt[_token];
-                    //find the difference between potential reward and actual reward
-
-                    uint256 unclaimedPotentialReward = maxPotentialReward - _pending;
-                    unclaimedRewardForRedistribution[_token] += unclaimedPotentialReward;
-                }
-
-                user.rewardDebt[_token] = (stakingMultiplier * (_newAmount * accRewardPerShare[_token] / ACC_REWARD_PER_SHARE_PRECISION)) / MULTIPLIER_PRECISION;
-                user.maxRewardDebt[_token] = (1e18 * (_newAmount * accRewardPerShare[_token] / ACC_REWARD_PER_SHARE_PRECISION)) / MULTIPLIER_PRECISION;
             }
         }
 
@@ -320,6 +339,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
             internalTgtBalance = internalTgtBalance - _amount;
 
             tgt.safeTransfer(_msgSender(), _amount);
+            console.log("***** ***** ***** WITHDRAW: %s", _amount);
             emit Withdraw(_msgSender(), _amount);
         }
     }
@@ -365,7 +385,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
             }
         }
 
-        uint256 _accruedReward = _rewardBalance - lastRewardBalance[_token] + unclaimedRewardForRedistribution[_token];
+        uint256 _accruedReward = (_rewardBalance + unclaimedRewardForRedistribution[_token]) - lastRewardBalance[_token];
         console.log("unclaimedRewardForRedistribution: %s", unclaimedRewardForRedistribution[_token]);
 
         unclaimedRewardForRedistribution[_token] = 0;
@@ -437,7 +457,6 @@ contract TGTStaking is Ownable, ReentrancyGuard {
             }
             else return 5e17;
         }
-        console.log("RETURNED 0000 ZERO FOR THE STAKING MULTIPLIER");
         return 0;
     }
 
