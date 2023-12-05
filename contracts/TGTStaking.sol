@@ -22,10 +22,15 @@ contract TGTStaking is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     /// @notice Info of each user
+    /// @param amount The amount of TGT the user has provided
+    /// @param depositTimestamp The timestamp of the block when the user deposited, used to calculate the staking multiplier
+    /// @param rewardDebt The amount of reward tokens claimed by the user if used without the staking multiplier
+    /// @param maxRewardDebt The amount of reward tokens already claimed by the user, multiplied by the max staking multiplier
     struct UserInfo {
         uint256 amount;
         uint256 depositTimestamp;
         mapping(IERC20 => uint256) rewardDebt;
+        mapping(IERC20 => uint256) maxRewardDebt;
         /**
          * @notice We do some fancy math here. Basically, any point in time, the amount of TGTs
          * entitled to a user but is pending to be distributed is:
@@ -134,6 +139,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
                 minimalMultiplier = stakingMultiplier;
 
             user.rewardDebt[_token] = (minimalMultiplier * (_newAmount * accRewardPerShare[_token] / ACC_REWARD_PER_SHARE_PRECISION)) / MULTIPLIER_PRECISION;
+            user.maxRewardDebt[_token] = (1e18 * (_newAmount * accRewardPerShare[_token] / ACC_REWARD_PER_SHARE_PRECISION)) / MULTIPLIER_PRECISION;
 
             if (_previousAmount != 0 && stakingMultiplier > 0) {
 
@@ -239,13 +245,32 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         console.log("stakingMultiplier: %s", stakingMultiplier);
         console.log("user.amount: %s", user.amount);
         console.log("_accRewardTokenPerShare: %s", _accRewardTokenPerShare);
-        console.log("user.rewardDebt[_token]: %s", user.rewardDebt[_token]);
+        console.log("111111111user.rewardDebt[_token]: %s", user.rewardDebt[_token]);
 
         if (stakingMultiplier != 0) {
             uint256 reward = (stakingMultiplier * (user.amount * _accRewardTokenPerShare / ACC_REWARD_PER_SHARE_PRECISION) / MULTIPLIER_PRECISION);
             console.log("reward: %s", reward);
-            if (reward < user.rewardDebt[_token]) return 0;
-            else return (reward - user.rewardDebt[_token]);
+            if (reward <= user.rewardDebt[_token]) return 0;
+            else {
+                if (user.rewardDebt[_token] == 0)
+                    return reward;
+                if (stakingMultiplier == 1e18)
+                    return (reward - user.maxRewardDebt[_token]);
+                uint256 debtFactor = (user.maxRewardDebt[_token] * stakingMultiplier) / MULTIPLIER_PRECISION;
+                console.log("!!!!!!!!!!!!!!++++++debtFactor: %s", debtFactor);
+//                uint256 debt = user.maxRewardDebt[_token] - debtFactor;
+                console.log("maxRewardDebt: %s", user.maxRewardDebt[_token]);
+                console.log("user.rewardDebt[_token]: %s", user.rewardDebt[_token]);
+//                console.log("!!!!!!!!!!!!!!++++++debt: %s", debt);
+                console.log("!!!!!!!!!!!!!!++++++reward: %s", reward);
+                if (debtFactor > reward)
+                    return 0;
+                else{
+                    console.log("!!!!!!!!!!!!!!++++++reward - debtFactor: %s", reward - debtFactor);
+                    return reward - debtFactor;
+                }
+//                    return reward - user.rewardDebt[_token];
+            }
         }
         else return 0;
     }
@@ -286,6 +311,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
                 }
 
                 user.rewardDebt[_token] = (stakingMultiplier * (_newAmount * accRewardPerShare[_token] / ACC_REWARD_PER_SHARE_PRECISION)) / MULTIPLIER_PRECISION;
+                user.maxRewardDebt[_token] = (1e18 * (_newAmount * accRewardPerShare[_token] / ACC_REWARD_PER_SHARE_PRECISION)) / MULTIPLIER_PRECISION;
             }
         }
 
@@ -312,6 +338,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         for (uint256 i; i < _len; i++) {
             IERC20 _token = rewardTokens[i];
             user.rewardDebt[_token] = 0;
+            user.maxRewardDebt[_token] = 0;
         }
         internalTgtBalance = internalTgtBalance - _amount;
         tgt.safeTransfer(_msgSender(), _amount);

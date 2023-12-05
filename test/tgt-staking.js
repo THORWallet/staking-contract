@@ -423,8 +423,8 @@ describe("TGT Staking", function () {
             //Staking multiplier for all stakers hasn't reached 2x yet, so they should all have some rewards left
             expect(await rewardToken.balanceOf(tgtStaking.address)).to.be.gt(0);
 
-            increase(86400 * 365);
-            console.log("*** 1 year passed ***");
+            increase(86400 * 350);
+            console.log("*** Almost 1 year passed ***");
             console.log("Pending reward for Bob: " + utils.formatEther(await tgtStaking.pendingReward(bob.address, rewardToken.address)));
             console.log("Reward pool balance before last withdraw: " + utils.formatEther(await rewardToken.balanceOf(tgtStaking.address)).toString());
 
@@ -432,9 +432,10 @@ describe("TGT Staking", function () {
             expect(await tgtStaking.pendingReward(bob.address, rewardToken.address)).to.be.lte(await rewardToken.balanceOf(tgtStaking.address));
 
             await tgtStaking.connect(bob).withdraw(0);
+
+            console.log("Pending reward for Bob: " + utils.formatEther(await tgtStaking.pendingReward(bob.address, rewardToken.address)));
             console.log("Reward pool balance at the end: " + utils.formatEther(await rewardToken.balanceOf(tgtStaking.address)).toString());
             console.log("Reward balance for Bob at the end: " + utils.formatEther(await rewardToken.balanceOf(bob.address)).toString());
-            console.log("Pending reward for Bob: " + utils.formatEther(await tgtStaking.pendingReward(bob.address, rewardToken.address)));
 
             expect(await rewardToken.balanceOf(tgtStaking.address)).to.be.eq(0);
             expect(await rewardToken.balanceOf(bob.address)).to.be.closeTo(
