@@ -336,7 +336,7 @@ describe("TGT Staking", function () {
 
             await increase(86400 * 7);
 
-            await tgtStaking.connect(bob).deposit(utils.parseEther("100")); // Bob enters
+            await tgtStaking.connect(bob).deposit(utils.parseEther("1000")); // Bob enters
 
             console.log("Reward pool balance: " + (await rewardToken.balanceOf(tgtStaking.address)).toString());
             console.log("Staking multiplier for Alice: " + utils.formatEther(await tgtStaking.getStakingMultiplier(alice.address)));
@@ -368,7 +368,7 @@ describe("TGT Staking", function () {
             const lastAliceBalance = await rewardToken.balanceOf(alice.address);
 
             expect(lastAliceBalance).to.be.closeTo(
-                utils.parseEther("26.136"),
+                utils.parseEther("28.314"),
                 utils.parseEther("0.001")
             );
             await increase(86400 * 7);
@@ -395,7 +395,7 @@ describe("TGT Staking", function () {
             await tgtStaking.connect(bob).withdraw("0");
 
             expect(await rewardToken.balanceOf(bob.address)).to.be.closeTo(
-                utils.parseEther("87.5"),
+                utils.parseEther("75"),
                 utils.parseEther("0.001")
             );
 
@@ -405,7 +405,6 @@ describe("TGT Staking", function () {
             //        = accRewardBalance * 0 / PRECISION - 0
             //        = 0      (she withdrew everything, so her share is 0)
             expect(await rewardToken.balanceOf(alice.address)).to.be.equal(lastAliceBalance);
-
 
             console.log("--------------------------------------");
             console.log("Reward pool balance at the end: " + utils.formatEther(await rewardToken.balanceOf(tgtStaking.address)).toString());
