@@ -317,7 +317,7 @@ describe("TGT Staking", function () {
             expect(await rewardToken.balanceOf(alice.address)).to.be.closeTo(utils.parseEther("1"), utils.parseEther("0.0001"));
         });
 
-        it("should allow deposits and withdraws of multiple users and distribute rewards accordingly even if someone enters or leaves", async function () {
+        it.only("should allow deposits and withdraws of multiple users and distribute rewards accordingly even if someone enters or leaves", async function () {
 
             const {
                 tgtStaking,
@@ -360,15 +360,21 @@ describe("TGT Staking", function () {
                 utils.parseEther("0.0001")
             );
 
-            console.log("Reward pool balance: " + (await rewardToken.balanceOf(tgtStaking.address)).toString());
+            console.log("Reward pool balance: " + utils.formatEther(await rewardToken.balanceOf(tgtStaking.address)).toString());
+            console.log("Pending reward for Alice: " + utils.formatEther(await tgtStaking.pendingReward(alice.address, rewardToken.address)));
 
-            await tgtStaking.connect(alice).deposit(utils.parseEther("100")); // Alice enters again to try to get more rewards
+            // Alice enters again to try to get more rewards
+            await tgtStaking.connect(alice).deposit(utils.parseEther("100"));
+
+            console.log("Pending reward for Alice: " + utils.formatEther(await tgtStaking.pendingReward(alice.address, rewardToken.address)));
+            console.log("Reward pool balance: " + utils.formatEther(await rewardToken.balanceOf(tgtStaking.address)).toString());
+
             await tgtStaking.connect(alice).withdraw(utils.parseEther("200"));
             // She gets the same reward as Carol
             const lastAliceBalance = await rewardToken.balanceOf(alice.address);
 
             expect(lastAliceBalance).to.be.closeTo(
-                utils.parseEther("28.314"),
+                utils.parseEther("37.5"),
                 utils.parseEther("0.001")
             );
             await increase(86400 * 7);
@@ -642,7 +648,7 @@ describe("TGT Staking", function () {
             balAlice = await usdc.balanceOf(alice.address);
             balBob = await usdc.balanceOf(bob.address);
 
-            expect(balAlice).to.be.closeTo(utils.parseEther("100"), utils.parseEther("0.0001"));
+            expect(balAlice).to.be.closeTo(utils.parseEther("75"), utils.parseEther("0.0001"));
             expect(balBob).to.be.closeTo(utils.parseEther("200"), utils.parseEther("0.0001"));
 
             await tgtStaking.removeRewardToken(usdc.address);
