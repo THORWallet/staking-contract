@@ -147,8 +147,8 @@ contract TGTStaking is Ownable, ReentrancyGuard {
                 console.log("  _pending: %s", _pending);
                 if (_pending != 0) {
                     uint256 _stakingMultiplier = getStakingMultiplier(_msgSender());
+                    uint256 _currentReward = _pending;
                     console.log("  _stakingMultiplier: %s", _stakingMultiplier);
-
                     if (_stakingMultiplier < 1e18 && _stakingMultiplier >= 5e17) {
                         uint256 _currentReward = (_pending * _stakingMultiplier) / MULTIPLIER_PRECISION;
 
@@ -164,7 +164,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
                         user.rewardPayoutAmount[_token] += _pending;
                         _pending = 0;
                     }
-                    else { // stakingMultiplier >= 1e18 (100%) distributes all locked rewards if any
+                    else {// stakingMultiplier >= 1e18 (100%) distributes all locked rewards if any
                         _pending += user.rewardPayoutAmount[_token];
                         user.rewardPayoutAmount[_token] = 0;
                     }
@@ -172,8 +172,11 @@ contract TGTStaking is Ownable, ReentrancyGuard {
                         safeTokenTransfer(_token, _msgSender(), _pending);
                         emit ClaimReward(_msgSender(), address(_token), _pending);
                     }
-
+                    console.log("  user.rewardPayoutAmount[_token]: %s", user.rewardPayoutAmount[_token]);
+                    console.log("  user.lastRewardStakingMultiplier: %s", user.lastRewardStakingMultiplier);
                     user.lastRewardStakingMultiplier = _stakingMultiplier;
+                    user.rewardPayoutAmount[_token] += _currentReward - ((_currentReward * _stakingMultiplier) / MULTIPLIER_PRECISION);
+                    console.log("  user.rewardPayoutAmount[_token]: %s", user.rewardPayoutAmount[_token]);
                 }
             }
         }
@@ -266,6 +269,8 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         console.log("accRewardPerShare: %s", _accRewardTokenPerShare);
         console.log("user.amount: %s", user.amount);
         console.log("user.rewardDebt[_token]: %s", user.rewardDebt[_token]);
+        console.log("user.rewardPayoutAmount[_token]: %s", user.rewardPayoutAmount[_token]);
+
         uint256 _pending = ((user.amount * _accRewardTokenPerShare) / ACC_REWARD_PER_SHARE_PRECISION) - user.rewardDebt[_token];
         console.log("  _pending: %s", _pending);
         if (_pending != 0 || user.rewardPayoutAmount[_token] != 0) {
@@ -313,14 +318,17 @@ contract TGTStaking is Ownable, ReentrancyGuard {
                 user.rewardDebt[_token] = (_newAmount * accRewardPerShare[_token]) / ACC_REWARD_PER_SHARE_PRECISION;
 
                 console.log("  _pending: %s", _pending);
+                console.log("  user.rewardPayoutAmount[_token]: %s", user.rewardPayoutAmount[_token]);
+                console.log("  user.lastRewardStakingMultiplier: %s", user.lastRewardStakingMultiplier);
+                console.log("  user.rewardDebt[_token]: %s", user.rewardDebt[_token]);
                 if (_pending != 0 || user.rewardPayoutAmount[_token] != 0) {
                     uint256 _stakingMultiplier = getStakingMultiplier(_msgSender());
+                    uint256 _currentReward = _pending;
+
                     console.log("  _stakingMultiplier: %s", _stakingMultiplier);
-                    console.log(" ca l c u la tion");
                     if (_stakingMultiplier < 1e18 && _stakingMultiplier >= 5e17) {
                         uint256 _currentReward = (_pending * _stakingMultiplier) / MULTIPLIER_PRECISION;
                         console.log("  _currentReward: %s", _currentReward);
-                        console.log(" &&&&& dfsdaf user.lastRewardStakingMultiplier: %s", user.lastRewardStakingMultiplier);
                         if (user.lastRewardStakingMultiplier == 0) {
                             _pending = _currentReward + (user.rewardPayoutAmount[_token] * _stakingMultiplier) / MULTIPLIER_PRECISION;
                             user.rewardPayoutAmount[_token] -= (user.rewardPayoutAmount[_token] * _stakingMultiplier) / MULTIPLIER_PRECISION;
@@ -343,6 +351,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
                     }
 
                     user.lastRewardStakingMultiplier = _stakingMultiplier;
+                    user.rewardPayoutAmount[_token] += _currentReward - ((_currentReward * _stakingMultiplier) / MULTIPLIER_PRECISION);
                 }
             }
         }
@@ -442,7 +451,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
     /// @param _user The address of the user
     function getStakingMultiplier(address _user) public view returns (uint256) {
         UserInfo storage user = userInfo[_user];
-        console.log("user address" , _user);
+        console.log("user address", _user);
         if (user.depositTimestamp == 0) {
             return 0;
         }
