@@ -60,6 +60,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
 
     /// @notice Last reward balance of `token`
     mapping(IERC20 => uint256) public lastRewardBalance;
+    mapping(IERC20 => uint256) public forgoneRewardsPool;
 
     /// @notice Accumulated `token` rewards per share, scaled to `ACC_REWARD_PER_SHARE_PRECISION`
     mapping(IERC20 => uint256) public accRewardPerShare;
@@ -144,11 +145,11 @@ contract TGTStaking is Ownable, ReentrancyGuard {
             if (_previousAmount != 0 || user.rewardPayoutAmount[_token] != 0) {
 
                 uint256 _pending = ((_previousAmount * accRewardPerShare[_token]) / ACC_REWARD_PER_SHARE_PRECISION) - _previousRewardDebt;
-                console.log("  _pending: %s", _pending);
+
                 if (_pending != 0) {
                     uint256 _stakingMultiplier = getStakingMultiplier(_msgSender());
-                    uint256 _currentReward = _pending;
-                    console.log("  _stakingMultiplier: %s", _stakingMultiplier);
+                    uint256 _fullReward = _pending;
+
                     if (_stakingMultiplier < 1e18 && _stakingMultiplier >= 5e17) {
                         uint256 _currentReward = (_pending * _stakingMultiplier) / MULTIPLIER_PRECISION;
 
@@ -161,7 +162,6 @@ contract TGTStaking is Ownable, ReentrancyGuard {
                             user.rewardPayoutAmount[_token] -= _oldRewardPayoutAmount;
                         }
                     } else if (_stakingMultiplier == 0) {
-                        user.rewardPayoutAmount[_token] += _pending;
                         _pending = 0;
                     }
                     else {// stakingMultiplier >= 1e18 (100%) distributes all locked rewards if any
@@ -175,7 +175,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
                     console.log("  user.rewardPayoutAmount[_token]: %s", user.rewardPayoutAmount[_token]);
                     console.log("  user.lastRewardStakingMultiplier: %s", user.lastRewardStakingMultiplier);
                     user.lastRewardStakingMultiplier = _stakingMultiplier;
-                    user.rewardPayoutAmount[_token] += _currentReward - ((_currentReward * _stakingMultiplier) / MULTIPLIER_PRECISION);
+                    user.rewardPayoutAmount[_token] += _fullReward - ((_fullReward * _stakingMultiplier) / MULTIPLIER_PRECISION);
                     console.log("  user.rewardPayoutAmount[_token]: %s", user.rewardPayoutAmount[_token]);
                 }
             }
@@ -251,7 +251,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
      */
     function pendingReward(address _user, IERC20 _token) external view returns (uint256) {
         require(isRewardToken[_token], "TGTStaking: wrong reward token");
-
+        console.log("***** ***** ***** pendingReward");
         UserInfo storage user = userInfo[_user];
         uint256 _totalTgt = internalTgtBalance;
         uint256 _accRewardTokenPerShare = accRewardPerShare[_token];
@@ -269,7 +269,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         console.log("accRewardPerShare: %s", _accRewardTokenPerShare);
         console.log("user.amount: %s", user.amount);
         console.log("user.rewardDebt[_token]: %s", user.rewardDebt[_token]);
-        console.log("user.rewardPayoutAmount[_token]: %s", user.rewardPayoutAmount[_token]);
+        console.log("pr- user.rewardPayoutAmount[_token]: %s", user.rewardPayoutAmount[_token]);
 
         uint256 _pending = ((user.amount * _accRewardTokenPerShare) / ACC_REWARD_PER_SHARE_PRECISION) - user.rewardDebt[_token];
         console.log("  _pending: %s", _pending);
@@ -318,16 +318,21 @@ contract TGTStaking is Ownable, ReentrancyGuard {
                 user.rewardDebt[_token] = (_newAmount * accRewardPerShare[_token]) / ACC_REWARD_PER_SHARE_PRECISION;
 
                 console.log("  _pending: %s", _pending);
-                console.log("  user.rewardPayoutAmount[_token]: %s", user.rewardPayoutAmount[_token]);
                 console.log("  user.lastRewardStakingMultiplier: %s", user.lastRewardStakingMultiplier);
                 console.log("  user.rewardDebt[_token]: %s", user.rewardDebt[_token]);
                 if (_pending != 0 || user.rewardPayoutAmount[_token] != 0) {
                     uint256 _stakingMultiplier = getStakingMultiplier(_msgSender());
-                    uint256 _currentReward = _pending;
+                    uint256 _fullReward = _pending;
 
                     console.log("  _stakingMultiplier: %s", _stakingMultiplier);
                     if (_stakingMultiplier < 1e18 && _stakingMultiplier >= 5e17) {
+
                         uint256 _currentReward = (_pending * _stakingMultiplier) / MULTIPLIER_PRECISION;
+                        console.log("  _currentReward: %s", _currentReward);
+                        //find the difference between max potential reward and given reward
+                        uint256 unclaimedPotentialReward = _pending - _currentReward;
+                        forgoneRewardsPool[_token] += unclaimedPotentialReward;
+
                         console.log("  _currentReward: %s", _currentReward);
                         if (user.lastRewardStakingMultiplier == 0) {
                             _pending = _currentReward + (user.rewardPayoutAmount[_token] * _stakingMultiplier) / MULTIPLIER_PRECISION;
@@ -338,7 +343,6 @@ contract TGTStaking is Ownable, ReentrancyGuard {
                             user.rewardPayoutAmount[_token] -= _oldRewardPayoutAmount;
                         }
                     } else if (_stakingMultiplier == 0) {
-                        user.rewardPayoutAmount[_token] += _pending;
                         _pending = 0;
                     }
                     else { // stakingMultiplier >= 1e18 (100%) distributes all locked rewards if any
@@ -351,7 +355,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
                     }
 
                     user.lastRewardStakingMultiplier = _stakingMultiplier;
-                    user.rewardPayoutAmount[_token] += _currentReward - ((_currentReward * _stakingMultiplier) / MULTIPLIER_PRECISION);
+                    user.rewardPayoutAmount[_token] += _fullReward - ((_fullReward * _stakingMultiplier) / MULTIPLIER_PRECISION);
                 }
             }
         }
