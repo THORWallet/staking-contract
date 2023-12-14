@@ -569,7 +569,7 @@ describe("TGT Staking", function () {
             expect(await tgtStaking.pendingReward(alice.address, usdc.address)).to.be.equal(utils.parseEther("100"));
         });
 
-        it.only("rewardDebt should be updated as expected, alice deposits before last reward is sent", async function () {
+        it("rewardDebt should be updated as expected, alice deposits before last reward is sent", async function () {
 
             const {
                 tgtStaking,
@@ -616,12 +616,12 @@ describe("TGT Staking", function () {
             console.log('step 3 ------------------------------------------------------------------');
 
             console.log("USDC Alice balance: ", utils.formatEther(await usdc.balanceOf(alice.address)));
-            // console.log("Staking multiplier for Alice: " + utils.formatEther(await tgtStaking.getStakingMultiplier(alice.address)));
+            console.log("Staking multiplier for Alice: " + utils.formatEther(await tgtStaking.getStakingMultiplier(alice.address)));
             userInfo = await tgtStaking.getUserInfo(alice.address, rewardToken.address);
             console.log("Staking deposit for Alice: " + userInfo[0]);
             console.log("Pending reward for Alice: " + utils.formatEther(await tgtStaking.pendingReward(alice.address, usdc.address)));
             console.log("--------------------------------------");
-            // console.log("Staking multiplier for Bob: " + utils.formatEther(await tgtStaking.getStakingMultiplier(bob.address)));
+            console.log("Staking multiplier for Bob: " + utils.formatEther(await tgtStaking.getStakingMultiplier(bob.address)));
             console.log("Pending reward for Bob: " + utils.formatEther(await tgtStaking.pendingReward(bob.address, usdc.address)));
             console.log("USDC Bob balance: ", utils.formatEther(await usdc.balanceOf(bob.address)));
             userInfo = await tgtStaking.getUserInfo(bob.address, rewardToken.address);
