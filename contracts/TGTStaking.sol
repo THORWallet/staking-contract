@@ -31,6 +31,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         uint256 lastRewardStakingMultiplier;
         mapping(IERC20 => uint256) rewardDebt;
         mapping(IERC20 => uint256) rewardPayoutAmount;
+        mapping(IERC20 => uint256) extraRewardsDebt;
         /**
          * @notice We do some fancy math here. Basically, any point in time, the amount of TGTs
          * entitled to a user but is pending to be distributed is:
@@ -58,10 +59,13 @@ contract TGTStaking is Ownable, ReentrancyGuard {
 
     /// @notice Last reward balance of `token`
     mapping(IERC20 => uint256) public lastRewardBalance;
+
+    /// @notice Forgone rewards pool for redistributing rewards to high stakers and community plus users
     mapping(IERC20 => uint256) public forgoneRewardsPool;
 
     /// @notice Accumulated `token` rewards per share, scaled to `ACC_REWARD_PER_SHARE_PRECISION`
     mapping(IERC20 => uint256) public accRewardPerShare;
+    mapping(IERC20 => uint256) public redistributionAccRewardPerShare;
 
     /// @notice The precision of `accRewardPerShare`
     uint256 public constant ACC_REWARD_PER_SHARE_PRECISION = 1e24;
@@ -79,6 +83,9 @@ contract TGTStaking is Ownable, ReentrancyGuard {
 
     /// @notice Emitted when a user claims reward
     event ClaimReward(address indexed user, address indexed rewardToken, uint256 amount);
+
+    /// @notice Emitted when a user claims an extra reward with 2x staking multiplier
+    event ClaimExtraReward(address indexed user, address indexed rewardToken, uint256 amount);
 
     /// @notice Emitted when a user emergency withdraws its TGT
     event EmergencyWithdraw(address indexed user, uint256 amount);
@@ -249,7 +256,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
      */
     function pendingReward(address _user, IERC20 _token) external view returns (uint256) {
         require(isRewardToken[_token], "TGTStaking: wrong reward token");
-        console.log("***** ***** ***** pendingReward");
+
         UserInfo storage user = userInfo[_user];
         uint256 _totalTgt = internalTgtBalance;
         uint256 _accRewardTokenPerShare = accRewardPerShare[_token];
@@ -273,12 +280,11 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         console.log("  _pending: %s", _pending);
         if (_pending != 0 || user.rewardPayoutAmount[_token] != 0) {
             uint256 _stakingMultiplier = getStakingMultiplier(_user);
-            console.log("  _stakingMultiplier: %s", _stakingMultiplier);
 
             if (_stakingMultiplier < 1e18 && _stakingMultiplier >= 5e17) {
                 uint256 _currentReward = (_pending * _stakingMultiplier) / MULTIPLIER_PRECISION;
                 console.log("  _currentReward: %s", _currentReward);
-                console.log("BREAKPOINT");
+
                 if (user.lastRewardStakingMultiplier == 0) {
                     _pending = _currentReward + (user.rewardPayoutAmount[_token] * _stakingMultiplier) / MULTIPLIER_PRECISION;
                 } else {
@@ -335,10 +341,14 @@ contract TGTStaking is Ownable, ReentrancyGuard {
 
                         uint256 _currentReward = (_pending * _stakingMultiplier) / MULTIPLIER_PRECISION;
                         console.log("  _currentReward: %s", _currentReward);
-                        //find the difference between max potential reward and given reward
-                        uint256 unclaimedPotentialReward = _pending - _currentReward;
-                        forgoneRewardsPool[_token] += unclaimedPotentialReward;
 
+                        if (_previousAmount >= _amount && _amount != 0) {
+                            //find the difference between max potential reward and given reward
+                            uint256 unclaimedPotentialReward = _pending - _currentReward;
+                            forgoneRewardsPool[_token] += unclaimedPotentialReward;
+                            console.log("- - - - - - - - - unclaimedPotentialReward", unclaimedPotentialReward);
+                        }
+                        console.log("+ + + + + + + + +=== forgoneRewardsPool[_token]", forgoneRewardsPool[_token]);
                         console.log("  _currentReward: %s", _currentReward);
                         if (user.lastRewardStakingMultiplier == 0) {
                             _pending = _currentReward + (user.rewardPayoutAmount[_token] * _stakingMultiplier) / MULTIPLIER_PRECISION;
@@ -382,6 +392,35 @@ contract TGTStaking is Ownable, ReentrancyGuard {
             emit Withdraw(_msgSender(), _amount);
         }
         console.log("-internal TGT balance: ", internalTgtBalance);
+    }
+
+    /**
+     * @notice Withdraws rewards from the forgoneRewardsPool for the stakers with 2x multiplier
+     */
+    function claimExtraRewards() external nonReentrant {
+        UserInfo storage user = userInfo[_msgSender()];
+        uint256 _stakingMultiplier = getStakingMultiplier(_msgSender());
+        require(_stakingMultiplier == 1e18 && user.amount > 350_000, "TGTStaking: not eligible for extra rewards");
+
+        uint256 _len = rewardTokens.length;
+        for (uint256 i; i < _len; i++) {
+            IERC20 _token = rewardTokens[i];
+            //FIXME CALCULATION IS INCORRECT
+            //todo result is 99298295725030943540 and it should be 41666666666666666668
+            // 350_000 * 41666666666666666668 / 350_100 - 0
+            console.log("user.amount: %s", user.amount);
+            console.log("internalTgtBalance: %s", internalTgtBalance);
+
+            uint256 _pendingExtraReward = (user.amount * forgoneRewardsPool[_token]) / internalTgtBalance - user.extraRewardsDebt[_token];
+            user.extraRewardsDebt[_token] = _pendingExtraReward;
+            forgoneRewardsPool[_token] -= _pendingExtraReward;
+            console.log("  _pendingExtraReward: %s", _pendingExtraReward);
+
+            if (_pendingExtraReward != 0) {
+                safeTokenTransfer(_token, _msgSender(), _pendingExtraReward);
+                emit ClaimExtraReward(_msgSender(), address(_token), _pendingExtraReward);
+            }
+        }
     }
 
     /**
