@@ -25,6 +25,8 @@ contract TGTStaking is Ownable, ReentrancyGuard {
     /// @param amount The amount of TGT the user has provided
     /// @param depositTimestamp The timestamp of the block when the user deposited, used to calculate the staking multiplier
     /// @param rewardDebt The amount of reward tokens claimed by the user if used without the staking multiplier
+    /// @param rewardPayoutAmount The amount of reward tokens that should be paid out to the user in total
+    /// @param extraRewardsDebt The amount of extra rewards claimed by the user when he has 2x staking multiplier and over 350k TGT staked
     struct UserInfo {
         uint256 amount;
         uint256 depositTimestamp;
@@ -395,7 +397,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice Withdraws rewards from the forgoneRewardsPool for the stakers with 2x multiplier
+     * @notice Withdraws rewards from the forgoneRewardsPool for the stakers with 2x multiplier and over 350k TGT staked
      */
     function claimExtraRewards() external nonReentrant {
         UserInfo storage user = userInfo[_msgSender()];
