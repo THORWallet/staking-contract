@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.8.19;
+pragma solidity ^0.8.22;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
@@ -22,10 +22,19 @@ contract TGTStaking is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     /// @notice Info of each user
+    /// @param amount The amount of TGT the user has provided
+    /// @param depositTimestamp The timestamp of the block when the user deposited, used to calculate the staking multiplier
+    /// @param lastRewardStakingMultiplier The last staking multiplier the user had when he claimed rewards
+    /// @param rewardDebt The amount of reward tokens claimed by the user if used without the staking multiplier
+    /// @param rewardPayoutAmount The amount of reward tokens that should be paid out to the user in total
+    /// @param extraRewardsDebt The amount of extra rewards claimed by the user when he has 2x staking multiplier and over 350k TGT staked
     struct UserInfo {
         uint256 amount;
         uint256 depositTimestamp;
+        uint256 lastRewardStakingMultiplier;
         mapping(IERC20 => uint256) rewardDebt;
+        mapping(IERC20 => uint256) rewardPayoutAmount;
+        mapping(IERC20 => uint256) extraRewardsDebt;
         /**
          * @notice We do some fancy math here. Basically, any point in time, the amount of TGTs
          * entitled to a user but is pending to be distributed is:
@@ -53,10 +62,13 @@ contract TGTStaking is Ownable, ReentrancyGuard {
 
     /// @notice Last reward balance of `token`
     mapping(IERC20 => uint256) public lastRewardBalance;
-    mapping(IERC20 => uint256) public unclaimedRewardForRedistribution;
+
+    /// @notice Forgone rewards pool for redistributing rewards to high stakers and community plus users
+    mapping(IERC20 => uint256) public forgoneRewardsPool;
 
     /// @notice Accumulated `token` rewards per share, scaled to `ACC_REWARD_PER_SHARE_PRECISION`
     mapping(IERC20 => uint256) public accRewardPerShare;
+    mapping(IERC20 => uint256) public redistributionAccRewardPerShare;
 
     /// @notice The precision of `accRewardPerShare`
     uint256 public constant ACC_REWARD_PER_SHARE_PRECISION = 1e24;
@@ -74,6 +86,9 @@ contract TGTStaking is Ownable, ReentrancyGuard {
 
     /// @notice Emitted when a user claims reward
     event ClaimReward(address indexed user, address indexed rewardToken, uint256 amount);
+
+    /// @notice Emitted when a user claims an extra reward with 2x staking multiplier
+    event ClaimExtraReward(address indexed user, address indexed rewardToken, uint256 amount);
 
     /// @notice Emitted when a user emergency withdraws its TGT
     event EmergencyWithdraw(address indexed user, uint256 amount);
@@ -112,9 +127,11 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         UserInfo storage user = userInfo[_msgSender()];
 
         uint256 _previousAmount = user.amount;
+
         if (_previousAmount == 0 && _amount > 0) {
             user.depositTimestamp = block.timestamp;
         }
+
         uint256 _newAmount = user.amount + _amount;
         user.amount = _newAmount;
 
@@ -122,24 +139,52 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         for (uint256 i; i < _len; i++) {
             IERC20 _token = rewardTokens[i];
 
-            uint256 stakingMultiplier = getStakingMultiplier(_msgSender());
-            bool specialCase = _previousAmount != 0 && stakingMultiplier == 0;
-            _updateReward(_token, specialCase, _amount);
+            _updateReward(_token);
 
             uint256 _previousRewardDebt = user.rewardDebt[_token];
-            user.rewardDebt[_token] = (stakingMultiplier * (_newAmount * accRewardPerShare[_token] / ACC_REWARD_PER_SHARE_PRECISION)) / MULTIPLIER_PRECISION;
+            user.rewardDebt[_token] = _newAmount * accRewardPerShare[_token] / ACC_REWARD_PER_SHARE_PRECISION;
 
-            if (_previousAmount != 0 && stakingMultiplier > 0) {
-                uint256 _pending = (stakingMultiplier * (_previousAmount * accRewardPerShare[_token] / ACC_REWARD_PER_SHARE_PRECISION) / MULTIPLIER_PRECISION - _previousRewardDebt);
+            if (_previousAmount != 0 || user.rewardPayoutAmount[_token] != 0) {
+
+                uint256 _pending = ((_previousAmount * accRewardPerShare[_token]) / ACC_REWARD_PER_SHARE_PRECISION) - _previousRewardDebt;
+
                 if (_pending != 0) {
-                    safeTokenTransfer(_token, _msgSender(), _pending);
-                    emit ClaimReward(_msgSender(), address(_token), _pending);
+                    uint256 _stakingMultiplier = getStakingMultiplier(_msgSender());
+                    uint256 _fullReward = _pending;
+
+                    if (_stakingMultiplier < 1e18 && _stakingMultiplier >= 5e17) {
+                        uint256 _currentReward = (_pending * _stakingMultiplier) / MULTIPLIER_PRECISION;
+
+                        if (user.lastRewardStakingMultiplier == 0) {
+                            _pending = _currentReward + (user.rewardPayoutAmount[_token] * _stakingMultiplier) / MULTIPLIER_PRECISION;
+                            user.rewardPayoutAmount[_token] -= (user.rewardPayoutAmount[_token] * _stakingMultiplier) / MULTIPLIER_PRECISION;
+                        } else {
+                            if (user.lastRewardStakingMultiplier > _stakingMultiplier) {
+                                user.lastRewardStakingMultiplier = 0;
+                            }
+
+                            uint256 _oldRewardPayoutAmount = ((2 * (_stakingMultiplier - user.lastRewardStakingMultiplier)) * user.rewardPayoutAmount[_token]) / MULTIPLIER_PRECISION;
+                            _pending = _currentReward + _oldRewardPayoutAmount;
+                            user.rewardPayoutAmount[_token] -= _oldRewardPayoutAmount;
+                        }
+                    } else if (_stakingMultiplier == 0) {
+                        _pending = 0;
+                    }
+                    else {// stakingMultiplier >= 1e18 (100%) distributes all locked rewards if any
+                        _pending += user.rewardPayoutAmount[_token];
+                        user.rewardPayoutAmount[_token] = 0;
+                    }
+                    if (_pending > 0) {
+                        safeTokenTransfer(_token, _msgSender(), _pending);
+                        emit ClaimReward(_msgSender(), address(_token), _pending);
+                    }
+                    user.lastRewardStakingMultiplier = _stakingMultiplier;
+                    user.rewardPayoutAmount[_token] += _fullReward - ((_fullReward * _stakingMultiplier) / MULTIPLIER_PRECISION);
                 }
             }
         }
 
         internalTgtBalance = internalTgtBalance + _amount;
-
         tgt.safeTransferFrom(_msgSender(), address(this), _amount);
         emit Deposit(_msgSender(), _amount);
     }
@@ -176,7 +221,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         require(rewardTokens.length < 25, "TGTStaking: list of token too big");
         rewardTokens.push(_rewardToken);
         isRewardToken[_rewardToken] = true;
-        _updateReward(_rewardToken, false, 0);
+        _updateReward(_rewardToken);
         emit RewardTokenAdded(address(_rewardToken));
     }
 
@@ -186,7 +231,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
      */
     function removeRewardToken(IERC20 _rewardToken) external nonReentrant onlyOwner {
         require(isRewardToken[_rewardToken], "TGTStaking: token can't be removed");
-        _updateReward(_rewardToken, false, 0);
+        _updateReward(_rewardToken);
         isRewardToken[_rewardToken] = false;
         uint256 _len = rewardTokens.length;
         lastRewardBalance[_rewardToken] = 0;
@@ -208,6 +253,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
      */
     function pendingReward(address _user, IERC20 _token) external view returns (uint256) {
         require(isRewardToken[_token], "TGTStaking: wrong reward token");
+
         UserInfo storage user = userInfo[_user];
         uint256 _totalTgt = internalTgtBalance;
         uint256 _accRewardTokenPerShare = accRewardPerShare[_token];
@@ -215,18 +261,39 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         uint256 _currRewardBalance = _token.balanceOf(address(this));
         uint256 _rewardBalance = _token == tgt ? _currRewardBalance - _totalTgt : _currRewardBalance;
 
-        if (_rewardBalance != lastRewardBalance[_token] && _totalTgt != 0 || unclaimedRewardForRedistribution[_token] != 0) {
-            uint256 _accruedReward = _rewardBalance - lastRewardBalance[_token] + unclaimedRewardForRedistribution[_token];
+        if (_rewardBalance != lastRewardBalance[_token] && _totalTgt != 0) {
+            uint256 _accruedReward = _rewardBalance - lastRewardBalance[_token];
             _accRewardTokenPerShare = _accRewardTokenPerShare +
                 (_accruedReward * ACC_REWARD_PER_SHARE_PRECISION / _totalTgt);
         }
-        uint256 stakingMultiplier = getStakingMultiplier(_user);
-        if (stakingMultiplier != 0) {
-            uint256 reward = (stakingMultiplier * (user.amount * _accRewardTokenPerShare / ACC_REWARD_PER_SHARE_PRECISION) / MULTIPLIER_PRECISION);
-            if (reward < user.rewardDebt[_token]) return 0;
-            else return (reward - user.rewardDebt[_token]);
+
+        uint256 _pending = ((user.amount * _accRewardTokenPerShare) / ACC_REWARD_PER_SHARE_PRECISION) - user.rewardDebt[_token];
+
+        if (_pending != 0 || user.rewardPayoutAmount[_token] != 0) {
+            uint256 _stakingMultiplier = getStakingMultiplier(_user);
+
+            if (_stakingMultiplier < 1e18 && _stakingMultiplier >= 5e17) {
+                uint256 _currentReward = (_pending * _stakingMultiplier) / MULTIPLIER_PRECISION;
+
+                if (user.lastRewardStakingMultiplier == 0) {
+                    _pending = _currentReward + (user.rewardPayoutAmount[_token] * _stakingMultiplier) / MULTIPLIER_PRECISION;
+                } else {
+                    uint256 lastMultiplier = user.lastRewardStakingMultiplier;
+                    if (user.lastRewardStakingMultiplier > _stakingMultiplier) {
+                        lastMultiplier = 0;
+                    }
+
+                    uint256 _oldRewardPayoutAmount = ((2 * (_stakingMultiplier - lastMultiplier)) * user.rewardPayoutAmount[_token]) / MULTIPLIER_PRECISION;
+                    _pending = _currentReward + _oldRewardPayoutAmount;
+                }
+            } else if (_stakingMultiplier == 0) {
+                _pending = 0;
+            }
+            else { // stakingMultiplier >= 1e18 (100%) distributes all locked rewards if any
+                _pending += user.rewardPayoutAmount[_token];
+            }
         }
-        else return 0;
+        return _pending;
     }
 
     /**
@@ -241,39 +308,90 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         user.amount = _newAmount;
 
         uint256 _len = rewardTokens.length;
-        uint256 stakingMultiplier = getStakingMultiplier(_msgSender());
-
-        if (_previousAmount != 0 && stakingMultiplier > 0) {
+        if (_previousAmount != 0) {
             for (uint256 i; i < _len; i++) {
                 IERC20 _token = rewardTokens[i];
-                _updateReward(_token, false, 0);
+                _updateReward(_token);
 
-                uint256 _pending = (stakingMultiplier * _previousAmount * accRewardPerShare[_token] / ACC_REWARD_PER_SHARE_PRECISION) / MULTIPLIER_PRECISION - user.rewardDebt[_token];
+                uint256 _pending = ((_previousAmount * accRewardPerShare[_token]) / ACC_REWARD_PER_SHARE_PRECISION) - user.rewardDebt[_token];
+                user.rewardDebt[_token] = (_newAmount * accRewardPerShare[_token]) / ACC_REWARD_PER_SHARE_PRECISION;
 
-                if (_pending != 0) {
-                    safeTokenTransfer(_token, _msgSender(), _pending);
-                    emit ClaimReward(_msgSender(), address(_token), _pending);
+                if (_pending != 0 || user.rewardPayoutAmount[_token] != 0) {
+                    uint256 _stakingMultiplier = getStakingMultiplier(_msgSender());
+                    uint256 _fullReward = _pending;
+
+                    if (_stakingMultiplier < 1e18 && _stakingMultiplier >= 5e17) {
+
+                        uint256 _currentReward = (_pending * _stakingMultiplier) / MULTIPLIER_PRECISION;
+
+                        if (_previousAmount >= _amount && _amount != 0) {
+                            //find the difference between max potential reward and given reward
+                            uint256 unclaimedPotentialReward = _pending - _currentReward;
+                            forgoneRewardsPool[_token] += unclaimedPotentialReward;
+                        }
+
+                        if (user.lastRewardStakingMultiplier == 0) {
+                            _pending = _currentReward + (user.rewardPayoutAmount[_token] * _stakingMultiplier) / MULTIPLIER_PRECISION;
+                            user.rewardPayoutAmount[_token] -= (user.rewardPayoutAmount[_token] * _stakingMultiplier) / MULTIPLIER_PRECISION;
+                        } else {
+                            if (user.lastRewardStakingMultiplier > _stakingMultiplier) {
+                                user.lastRewardStakingMultiplier = 0;
+                            }
+
+                            uint256 _oldRewardPayoutAmount = ((2 * (_stakingMultiplier - user.lastRewardStakingMultiplier)) * user.rewardPayoutAmount[_token]) / MULTIPLIER_PRECISION;
+                            _pending = _currentReward + _oldRewardPayoutAmount;
+                            user.rewardPayoutAmount[_token] -= _oldRewardPayoutAmount;
+                        }
+                    } else if (_stakingMultiplier == 0) {
+                        _pending = 0;
+                    }
+                    else { // stakingMultiplier >= 1e18 (100%) distributes all locked rewards if any
+                        _pending += user.rewardPayoutAmount[_token];
+                        user.rewardPayoutAmount[_token] = 0;
+                    }
+                    if (_pending > 0) {
+                        safeTokenTransfer(_token, _msgSender(), _pending);
+                        emit ClaimReward(_msgSender(), address(_token), _pending);
+                    }
+
+                    user.lastRewardStakingMultiplier = _stakingMultiplier;
+                    user.rewardPayoutAmount[_token] += _fullReward - ((_fullReward * _stakingMultiplier) / MULTIPLIER_PRECISION);
                 }
-
-                if (_amount > 0 && stakingMultiplier < 1e18) {
-                    //find unclaimed potential reward _amount
-                    uint256 maxPotentialReward = (_previousAmount * accRewardPerShare[_token] / ACC_REWARD_PER_SHARE_PRECISION) - user.rewardDebt[_token];
-                    //find the difference between potential reward and actual reward
-
-                    uint256 unclaimedPotentialReward = maxPotentialReward - _pending;
-                    unclaimedRewardForRedistribution[_token] += unclaimedPotentialReward;
-                }
-
-                user.rewardDebt[_token] = (stakingMultiplier * _newAmount * accRewardPerShare[_token] / ACC_REWARD_PER_SHARE_PRECISION) / MULTIPLIER_PRECISION;
             }
         }
 
         if (_amount > 0) {
             user.depositTimestamp = block.timestamp;
 
-            internalTgtBalance = internalTgtBalance - _amount;
+            if (internalTgtBalance >= _amount) {
+                internalTgtBalance = internalTgtBalance - _amount;
+            }
+
             tgt.safeTransfer(_msgSender(), _amount);
             emit Withdraw(_msgSender(), _amount);
+        }
+    }
+
+    /**
+     * @notice Withdraws rewards from the forgoneRewardsPool for the stakers with 2x multiplier and over 350k TGT staked
+     */
+    function claimExtraRewards() external nonReentrant {
+        UserInfo storage user = userInfo[_msgSender()];
+        uint256 _stakingMultiplier = getStakingMultiplier(_msgSender());
+        require(_stakingMultiplier == 1e18 && user.amount > 350_000, "TGTStaking: not eligible for extra rewards");
+
+        uint256 _len = rewardTokens.length;
+        for (uint256 i; i < _len; i++) {
+            IERC20 _token = rewardTokens[i];
+
+            uint256 _pendingExtraReward = (user.amount * forgoneRewardsPool[_token]) / internalTgtBalance - user.extraRewardsDebt[_token];
+            user.extraRewardsDebt[_token] = _pendingExtraReward;
+            forgoneRewardsPool[_token] -= _pendingExtraReward;
+
+            if (_pendingExtraReward != 0) {
+                safeTokenTransfer(_token, _msgSender(), _pendingExtraReward);
+                emit ClaimExtraReward(_msgSender(), address(_token), _pendingExtraReward);
+            }
         }
     }
 
@@ -292,7 +410,9 @@ contract TGTStaking is Ownable, ReentrancyGuard {
             IERC20 _token = rewardTokens[i];
             user.rewardDebt[_token] = 0;
         }
-        internalTgtBalance = internalTgtBalance - _amount;
+        if (internalTgtBalance >= _amount) {
+            internalTgtBalance = internalTgtBalance - _amount;
+        }
         tgt.safeTransfer(_msgSender(), _amount);
         emit EmergencyWithdraw(_msgSender(), _amount);
     }
@@ -302,31 +422,26 @@ contract TGTStaking is Ownable, ReentrancyGuard {
      * @param _token The address of the reward token
      * @dev Needs to be called before any deposit or withdrawal
      */
-    function _updateReward(IERC20 _token, bool specialCase, uint256 newDepositAmount) internal {
+    function _updateReward(IERC20 _token) internal {
         require(isRewardToken[_token], "TGTStaking: wrong reward token");
+
         uint256 _totalTgt = internalTgtBalance;
+
         uint256 _currRewardBalance = _token.balanceOf(address(this));
         uint256 _rewardBalance = _token == tgt ? _currRewardBalance - _totalTgt : _currRewardBalance;
 
         // Did TGTStaking receive any token
         if (_rewardBalance == lastRewardBalance[_token] || _totalTgt == 0) {
-            if (unclaimedRewardForRedistribution[_token] == 0) {
-                return;
-            }
-        }
-
-        uint256 _accruedReward = _rewardBalance - lastRewardBalance[_token] + unclaimedRewardForRedistribution[_token];
-        unclaimedRewardForRedistribution[_token] = 0;
-
-        if (specialCase) {
-            accRewardPerShare[_token] = (_rewardBalance * ACC_REWARD_PER_SHARE_PRECISION / (_totalTgt + newDepositAmount));
-            lastRewardBalance[_token] = _rewardBalance;
             return;
         }
+
+        uint256 _accruedReward = _rewardBalance - lastRewardBalance[_token];
+
 
         accRewardPerShare[_token] = accRewardPerShare[_token] +
             (_accruedReward * ACC_REWARD_PER_SHARE_PRECISION / _totalTgt);
         lastRewardBalance[_token] = _rewardBalance;
+//        console.log("accRewardPerShare after update: %s", accRewardPerShare[_token]);
     }
 
     /**
@@ -365,18 +480,18 @@ contract TGTStaking is Ownable, ReentrancyGuard {
             return 0;
         }
         uint256 timeDiff = block.timestamp - user.depositTimestamp;
-
+//        console.log("timeDiff: %s", timeDiff);
         if (timeDiff >= 365 days) {
             return 1e18;
-        } else if (timeDiff >= (30 days * 6)) {
-            if (timeDiff > (30 days * 6)) {
-                return (75e16 + calculatePart(25e16, calculatePercentage(timeDiff - 30 days * 6, 30 days * 6)));
+        } else if (timeDiff >= 180 days) {
+            if (timeDiff > (180 days)) {
+                return (75e16 + calculatePart(25e16, calculatePercentage(timeDiff - 180 days, 185 days)));
             }
             else return 75e16;
         }
         else if (timeDiff >= 7 days) {
             if (timeDiff > 7 days) {
-                return (5e17 + calculatePart(25e16, calculatePercentage(timeDiff - 7 days, 30 days * 6)));
+                return (5e17 + calculatePart(25e16, calculatePercentage(timeDiff - 7 days, 173 days)));
             }
             else return 5e17;
         }
