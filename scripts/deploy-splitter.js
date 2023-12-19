@@ -14,23 +14,24 @@ async function main() {
     const signers = await ethers.getSigners();
     const deployer = signers[0];
     const treasury = "0xCF23e5020497cE7129c02041FCceF9A0BA5e6554";
+    const affiliateCollector = "0x23893CB95413af4eB2a8039fa2beD4048fED75f0";
     console.log('Deployer address: ' + (await deployer.getAddress()));
 
     const Splitter = await ethers.getContractFactory("Splitter");
-    const TGTStaking = await ethers.getContractFactory("TGTStaking");
+    // const TGTStaking = await ethers.getContractFactory("TGTStaking");
     const TGT = await ethers.getContractFactory("MockTGT");
     const USDC = await ethers.getContractFactory("USDC");
 
     const tgt = TGT.attach("0x108a850856Db3f85d0269a2693D896B394C80325");
     const usdc = USDC.attach("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48");
-    const staking = TGTStaking.attach("0x2bd7Ec577be3C9e8fD04012E96b4DFFA945DA43e");
+    // const staking = TGTStaking.attach("0x2bd7Ec577be3C9e8fD04012E96b4DFFA945DA43e");
 
     console.log("Deploying splitter contract");
 
     const splitter = await Splitter.deploy(
         tgt.address,
         usdc.address,
-        [staking.address,
+        [affiliateCollector,
             treasury],
         [utils.parseEther("0.5"),
             utils.parseEther("0.5")]
@@ -46,7 +47,7 @@ async function main() {
         address: splitter.address,
         constructorArguments: [tgt.address,
             usdc.address,
-            [staking.address,
+            [affiliateCollector,
                 treasury],
             [utils.parseEther("0.5"),
                 utils.parseEther("0.5")]],

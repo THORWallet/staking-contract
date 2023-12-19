@@ -43,7 +43,8 @@ module.exports = {
             url: "https://mainnet.infura.io/v3/" + process.env.INFURA_API_KEY,
             accounts: {
                 mnemonic: process.env.MNEMONIC
-            }
+            },
+            gasPrice: 44000000000
         }
     },
     solidity: {
@@ -70,7 +71,7 @@ module.exports = {
         gasReporter: {
             currency: "USD",
             token: "ETH",
-            gasPrice: 30,
+            gasPrice: 45,
             // gasPriceApi:
             //     "https://api.etherscan.com/api?module=proxy&action=eth_gasPrice&apikey=" + process.env.ETHERSCAN_API_KEY,
             enabled: process.env.REPORT_GAS,
