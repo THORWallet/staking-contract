@@ -300,7 +300,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
      * @notice To just harvest the rewards pass 0 as `_amount`, to harvest and withdraw pass the amount to withdraw
      * @param _amount The amount of TGT to withdraw if any
      */
-    function withdraw(uint256 _amount) external nonReentrant {
+    function withdraw(uint256 _amount) public nonReentrant {
         UserInfo storage user = userInfo[_msgSender()];
         uint256 _previousAmount = user.amount;
         require(_amount <= _previousAmount, "TGTStaking: withdraw amount exceeds balance");
@@ -375,7 +375,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
     /**
      * @notice Withdraws rewards from the forgoneRewardsPool for the stakers with 2x multiplier and over 350k TGT staked
      */
-    function claimExtraRewards() external nonReentrant {
+    function claimExtraRewards() public nonReentrant {
         UserInfo storage user = userInfo[_msgSender()];
         uint256 _stakingMultiplier = getStakingMultiplier(_msgSender());
         require(_stakingMultiplier == 1e18 && user.amount > 350_000, "TGTStaking: not eligible for extra rewards");
@@ -393,6 +393,15 @@ contract TGTStaking is Ownable, ReentrancyGuard {
                 emit ClaimExtraReward(_msgSender(), address(_token), _pendingExtraReward);
             }
         }
+    }
+
+    /**
+     * @notice Withdraws and claims extra rewards at the same time
+     */
+
+    function withdrawAndClaimExtraRewards(uint256 _amount) external {
+        withdraw(_amount);
+        claimExtraRewards();
     }
 
     /**

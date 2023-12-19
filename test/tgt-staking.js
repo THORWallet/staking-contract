@@ -1074,9 +1074,10 @@ describe("TGT Staking", function () {
 
             // Extra rewards claim redistribution
 
-            await expect(tgtStaking.connect(alice).claimExtraRewards()).to.be.revertedWith("TGTStaking: not eligible for extra rewards");
+            await expect(tgtStaking.connect(alice).withdrawAndClaimExtraRewards(0)).to.be.revertedWith("TGTStaking: not eligible for extra rewards");
             let userInfo = await tgtStaking.getUserInfo(alice.address, rewardToken.address);
-            console.log("Staking deposit for Alice mmmmmm: " + utils.formatEther(userInfo[0]));
+            console.log("Staking deposit for Alice: " + utils.formatEther(userInfo[0]));
+
             await tgt.connect(tgtMaker).transfer(alice.address, utils.parseEther("350000"));
             await tgtStaking.connect(alice).deposit(utils.parseEther("350000"));
             increase(86400 * 365);
@@ -1084,7 +1085,8 @@ describe("TGT Staking", function () {
             console.log("Staking deposit for Alice: " + utils.formatEther(userInfo[0]));
             console.log("Staking multiplier for Alice: " + utils.formatEther(await tgtStaking.getStakingMultiplier(alice.address)));
             console.log("Reward balance before Alice: ", utils.formatEther(await rewardToken.balanceOf(alice.address)));
-            await tgtStaking.connect(alice).claimExtraRewards();
+
+            await tgtStaking.connect(alice).withdrawAndClaimExtraRewards(0);
             console.log("Reward balance after extra rewards Alice: ", utils.formatEther(await rewardToken.balanceOf(alice.address)));
 
         });
