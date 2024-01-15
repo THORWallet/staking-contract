@@ -12,26 +12,33 @@ async function main() {
 
     console.log(`Running deploy script for the staking contract`)
 
-    const TGTStaking = await ethers.getContractFactory("TGTStaking");
-
-    usdcAddress = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
-    tgtAddress = "0x108a850856Db3f85d0269a2693D896B394C80325";
+    const Splitter = await ethers.getContractFactory("Splitter");
 
     const signers = await ethers.getSigners();
 
     const deployer = signers[0];
     console.log('Deployer address: ' + (await deployer.getAddress()));
 
-    const tgtStaking = await TGTStaking.attach('0xe45Da0b3e073c15F9426C0d84d201fa0221b0c5E');
+    const splitter = await Splitter.attach('0xA31E676d69e361dD02b746722D4B267878cdd667');
+    const usdcAddress = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
+    const tgtAddress = "0x108a850856Db3f85d0269a2693D896B394C80325";
+    const treasury = "0xCF23e5020497cE7129c02041FCceF9A0BA5e6554";
+    const affiliateCollector = "0x23893CB95413af4eB2a8039fa2beD4048fED75f0";
 
-    console.log('TGTStaking deployed to:', tgtStaking.address);
+
+    console.log('Splitter deployed to:', splitter.address);
 
     //delay for 15 seconds
     await new Promise(resolve => setTimeout(resolve, 15000));
 
     await hre.run("verify:verify", {
-        address: tgtStaking.address,
-        constructorArguments: [usdcAddress, tgtAddress],
+        address: splitter.address,
+        constructorArguments: [tgtAddress,
+            usdcAddress,
+            [affiliateCollector,
+                treasury],
+            [utils.parseEther("0.5"),
+                utils.parseEther("0.5")]],
     })
 
     console.log("Staking contract was verified successfully")

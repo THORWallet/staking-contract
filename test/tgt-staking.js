@@ -30,7 +30,7 @@ describe("TGT Staking", function () {
             utils.parseEther("1000"),
             utils.parseEther("1000"),
             utils.parseEther("0"),
-            utils.parseEther("350000"),
+            utils.parseEther("1500000"),
             utils.parseEther("10000")];
         await tgt.mint(accounts, amounts);
         await tgt.mintFinish();
@@ -54,7 +54,7 @@ describe("TGT Staking", function () {
         console.log("USDC decimals is: " + (await rewardToken.decimals()).toString());
 
         await tgt.connect(alice).approve(tgtStaking.address, utils.parseEther("360000"));
-        await tgt.connect(bob).approve(tgtStaking.address, utils.parseEther("100000"));
+        await tgt.connect(bob).approve(tgtStaking.address, utils.parseEther("360000"));
         await tgt.connect(carol).approve(tgtStaking.address, utils.parseEther("100000"));
         await tgt.connect(joe).approve(tgtStaking.address, utils.parseEther("100000"));
 
@@ -976,7 +976,7 @@ describe("TGT Staking", function () {
 
         });
 
-        it("pending reward should be updated for all stakers when there is a new deposit of reward tokens and staking multiplier is 0.5x", async function () {
+        it("extra rewards should be distributed to community plus stakers", async function () {
 
             const {
                 tgtStaking,
@@ -1089,6 +1089,100 @@ describe("TGT Staking", function () {
             await tgtStaking.connect(alice).withdrawAndClaimExtraRewards(0);
             console.log("Reward balance after extra rewards Alice: ", utils.formatEther(await rewardToken.balanceOf(alice.address)));
 
+        });
+
+        it("claimExtraRewards should not underflow", async function () {
+
+            const {
+                tgtStaking,
+                tgt,
+                rewardToken,
+                alice,
+                bob,
+                tgtMaker
+            } = await loadFixture(deployFixture);
+
+            await tgtStaking.connect(alice).deposit(utils.parseEther("100"));
+            await tgtStaking.connect(bob).deposit(utils.parseEther("100"));
+            await increase(86400 * 7);
+            await rewardToken.connect(tgtMaker).transfer(tgtStaking.address, utils.parseEther("100"));
+
+            expect(await tgtStaking.pendingReward(bob.address, rewardToken.address)).to.be.equal(utils.parseEther("25"));
+
+            await tgtStaking.connect(alice).withdraw(utils.parseEther("50")); // unclaimed rewards so far = 25
+            expect(await tgtStaking.forgoneRewardsPool(rewardToken.address)).to.be.equal(utils.parseEther("25"));
+
+            expect(await rewardToken.balanceOf(alice.address)).to.be.closeTo(
+                utils.parseEther("25"),
+                utils.parseEther("0.0001")
+            );
+
+            expect(await tgtStaking.pendingReward(bob.address, rewardToken.address)).to.be.equal(
+                utils.parseEther("25")
+            );
+
+            await tgtStaking.connect(bob).withdraw(utils.parseEther("0"));
+
+            expect(await tgtStaking.forgoneRewardsPool(rewardToken.address)).to.be.equal(utils.parseEther("25"));
+
+            expect(await rewardToken.balanceOf(bob.address)).to.be.closeTo(
+                utils.parseEther("25"),
+                utils.parseEther("0.001")
+            );
+
+            expect(await tgtStaking.pendingReward(alice.address, rewardToken.address)).to.be.equal(utils.parseEther("0"));
+            expect(await tgtStaking.pendingReward(bob.address, rewardToken.address)).to.be.equal(utils.parseEther("0"));
+
+            increase(86400 * 7);
+
+            await rewardToken.connect(tgtMaker).transfer(tgtStaking.address, utils.parseEther("100"));
+
+            expect(await tgtStaking.pendingReward(alice.address, rewardToken.address)).to.be.equal(utils.parseEther("16.666666666666666666"));
+            expect(await tgtStaking.pendingReward(bob.address, rewardToken.address)).to.be.equal(utils.parseEther("34.511666666666666666"));
+
+            await tgtStaking.connect(alice).withdraw(utils.parseEther("50"));
+            expect(await tgtStaking.forgoneRewardsPool(rewardToken.address)).to.be.equal(utils.parseEther("41.666666666666666667"));
+
+            await tgtStaking.connect(bob).withdraw(utils.parseEther("0"));
+
+            expect(await rewardToken.balanceOf(alice.address)).to.be.closeTo(
+                utils.parseEther("41.666"),
+                utils.parseEther("0.001")
+            );
+            expect(await rewardToken.balanceOf(bob.address)).to.be.closeTo(
+                utils.parseEther("59.5116"),
+                utils.parseEther("0.001")
+            );
+
+            increase(86400 * 365);
+
+            await tgtStaking.connect(alice).withdraw(utils.parseEther("0"));
+            await tgtStaking.connect(bob).withdraw(utils.parseEther("0"));
+
+            //these funds are to be redistributed to community plus stakers
+            expect(await rewardToken.balanceOf(tgtStaking.address)).to.be.closeTo(utils.parseEther("41.6666"), utils.parseEther("0.0001"));
+
+            // Extra rewards claim redistribution
+            await expect(tgtStaking.connect(alice).withdrawAndClaimExtraRewards(0)).to.be.revertedWith("TGTStaking: not eligible for extra rewards");
+            let userInfo = await tgtStaking.getUserInfo(alice.address, rewardToken.address);
+            console.log("Staking deposit for Alice: " + utils.formatEther(userInfo[0]));
+
+            await tgt.connect(tgtMaker).transfer(alice.address, utils.parseEther("350000"));
+            await tgt.connect(tgtMaker).transfer(bob.address, utils.parseEther("350000"));
+            await tgtStaking.connect(alice).deposit(utils.parseEther("350000"));
+            await tgtStaking.connect(bob).deposit(utils.parseEther("350000"));
+            increase(86400 * 365);
+            userInfo = await tgtStaking.getUserInfo(alice.address, rewardToken.address);
+            console.log("Staking deposit for Alice: " + utils.formatEther(userInfo[0]));
+            console.log("Staking multiplier for Alice: " + utils.formatEther(await tgtStaking.getStakingMultiplier(alice.address)));
+            console.log("Reward balance before Alice: ", utils.formatEther(await rewardToken.balanceOf(alice.address)));
+
+            await tgtStaking.connect(alice).withdrawAndClaimExtraRewards(0);
+            await tgtStaking.connect(bob).withdrawAndClaimExtraRewards(0);
+            await tgtStaking.connect(alice).withdrawAndClaimExtraRewards(0);
+            await tgtStaking.connect(alice).withdrawAndClaimExtraRewards(0);
+            await tgtStaking.connect(bob).withdrawAndClaimExtraRewards(0);
+            console.log("Reward balance after extra rewards Alice: ", utils.formatEther(await rewardToken.balanceOf(alice.address)));
         });
 
         //This test is invalid as we don't allow redistribution now

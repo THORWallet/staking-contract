@@ -384,7 +384,10 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         for (uint256 i; i < _len; i++) {
             IERC20 _token = rewardTokens[i];
 
-            uint256 _pendingExtraReward = (user.amount * forgoneRewardsPool[_token]) / internalTgtBalance - user.extraRewardsDebt[_token];
+            uint256 _pendingExtraReward = 0;
+            if ((user.amount * forgoneRewardsPool[_token]) / internalTgtBalance > user.extraRewardsDebt[_token]) {
+                _pendingExtraReward = (user.amount * forgoneRewardsPool[_token]) / internalTgtBalance - user.extraRewardsDebt[_token];
+            }
             user.extraRewardsDebt[_token] = _pendingExtraReward;
             forgoneRewardsPool[_token] -= _pendingExtraReward;
 
