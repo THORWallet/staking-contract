@@ -361,7 +361,12 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         }
 
         if (_amount > 0) {
-            user.depositTimestamp = block.timestamp;
+
+            if (_amount == _previousAmount) {
+                user.depositTimestamp = 0;
+            } else {
+                user.depositTimestamp = block.timestamp;
+            }
 
             if (internalTgtBalance >= _amount) {
                 internalTgtBalance = internalTgtBalance - _amount;
