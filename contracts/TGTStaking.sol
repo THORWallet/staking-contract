@@ -35,6 +35,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         mapping(IERC20 => uint256) rewardDebt;
         mapping(IERC20 => uint256) rewardPayoutAmount;
         mapping(IERC20 => uint256) extraRewardsDebt;
+        mapping(IERC20 => uint256) paidRewards;
         /**
          * @notice We do some fancy math here. Basically, any point in time, the amount of TGTs
          * entitled to a user but is pending to be distributed is:
@@ -68,7 +69,6 @@ contract TGTStaking is Ownable, ReentrancyGuard {
 
     /// @notice Accumulated `token` rewards per share, scaled to `ACC_REWARD_PER_SHARE_PRECISION`
     mapping(IERC20 => uint256) public accRewardPerShare;
-    mapping(IERC20 => uint256) public redistributionAccRewardPerShare;
 
     /// @notice The precision of `accRewardPerShare`
     uint256 public constant ACC_REWARD_PER_SHARE_PRECISION = 1e24;
@@ -175,6 +175,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
                         user.rewardPayoutAmount[_token] = 0;
                     }
                     if (_pending > 0) {
+                        user.paidRewards[_token] += _pending;
                         safeTokenTransfer(_token, _msgSender(), _pending);
                         emit ClaimReward(_msgSender(), address(_token), _pending);
                     }
@@ -337,7 +338,6 @@ contract TGTStaking is Ownable, ReentrancyGuard {
                             if (user.lastRewardStakingMultiplier > _stakingMultiplier) {
                                 user.lastRewardStakingMultiplier = 0;
                             }
-
                             uint256 _oldRewardPayoutAmount = ((2 * (_stakingMultiplier - user.lastRewardStakingMultiplier)) * user.rewardPayoutAmount[_token]) / MULTIPLIER_PRECISION;
                             _pending = _currentReward + _oldRewardPayoutAmount;
                             user.rewardPayoutAmount[_token] -= _oldRewardPayoutAmount;
@@ -350,6 +350,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
                         user.rewardPayoutAmount[_token] = 0;
                     }
                     if (_pending > 0) {
+                        user.paidRewards[_token] += _pending;
                         safeTokenTransfer(_token, _msgSender(), _pending);
                         emit ClaimReward(_msgSender(), address(_token), _pending);
                     }
@@ -357,7 +358,18 @@ contract TGTStaking is Ownable, ReentrancyGuard {
                     user.lastRewardStakingMultiplier = _stakingMultiplier;
                     user.rewardPayoutAmount[_token] += _fullReward - ((_fullReward * _stakingMultiplier) / MULTIPLIER_PRECISION);
                 }
+
+                // if a user withdraws completely he loses any potential rewards he could have claimed in the future
+                if (_newAmount == 0) {
+                    if (user.rewardPayoutAmount[_token] > user.paidRewards[_token]) {
+                        forgoneRewardsPool[_token] += user.rewardPayoutAmount[_token] - user.paidRewards[_token];
+                    } else {
+                        forgoneRewardsPool[_token] += user.rewardPayoutAmount[_token];
+                    }
+                    user.rewardPayoutAmount[_token] = 0;
+                }
             }
+
         }
 
         if (_amount > 0) {
