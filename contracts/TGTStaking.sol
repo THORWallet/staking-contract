@@ -416,6 +416,22 @@ contract TGTStaking is Ownable, ReentrancyGuard {
     }
 
     /**
+     * @notice Estimates the next pending reward from the forgoneRewardsPool for the stakers with 2x multiplier and over 350k TGT staked
+     */
+    function pendingExtraRewards(address _user, IERC20 _token) external view returns (uint256) {
+        UserInfo storage user = userInfo[_user];
+        uint256 _stakingMultiplier = getStakingMultiplier(_user);
+        if (_stakingMultiplier == 1e18 && user.amount > 350_000) {
+            uint256 _pendingExtraReward = 0;
+            if ((user.amount * forgoneRewardsPool[_token]) / internalTgtBalance > user.extraRewardsDebt[_token]) {
+                _pendingExtraReward += (user.amount * forgoneRewardsPool[_token]) / internalTgtBalance - user.extraRewardsDebt[_token];
+            }
+            return _pendingExtraReward;
+        }
+        return 0;
+    }
+
+    /**
      * @notice Withdraws and claims extra rewards at the same time
      */
 

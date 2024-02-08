@@ -39,14 +39,14 @@ async function main() {
     ];
 
     const amounts = [
-        utils.parseEther("100"),
-        utils.parseEther("100"),
-        utils.parseEther("100"),
-        utils.parseEther("100"),
-        utils.parseEther("1000"),
-        utils.parseEther("100"),
-        utils.parseEther("100"),
-        utils.parseEther("100"),
+        utils.parseEther("5000"),
+        utils.parseEther("5000"),
+        utils.parseEther("5000"),
+        utils.parseEther("5000"),
+        utils.parseEther("5000"),
+        utils.parseEther("5000"),
+        utils.parseEther("5000"),
+        utils.parseEther("5000"),
     ];
 
     await tgt.mint(accounts, amounts);
@@ -72,7 +72,7 @@ async function main() {
     );
 
     //delay for 15 seconds
-    await new Promise(resolve => setTimeout(resolve, 15000));
+    // await new Promise(resolve => setTimeout(resolve, 15000));
 
     await hre.run("verify:verify", {
         address: tgt.address,

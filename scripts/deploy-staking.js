@@ -1,5 +1,5 @@
 /*
-  yarn deploy --script deploy-staking-mock.ts
+  yarn deploy --script deploy-staking.ts
 */
 
 
