@@ -33,11 +33,11 @@ module.exports = {
             }
         },
         polygon: {
-            url: "https://rpc-mainnet.maticvigil.com",
+            url: "https://polygon-pokt.nodies.app",
             accounts: {
                 mnemonic: process.env.MNEMONIC
             },
-            gasPrice: 100000000000
+            gasPrice: 200000000000
         },
         ethereum: {
             url:"https://eth-mainnet.g.alchemy.com/v2/" + process.env.ALCHEMY_API_KEY,
