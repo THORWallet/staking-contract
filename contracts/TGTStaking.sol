@@ -316,7 +316,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
 
                 uint256 _pending = ((_previousAmount * accRewardPerShare[_token]) / ACC_REWARD_PER_SHARE_PRECISION) - user.rewardDebt[_token];
                 user.rewardDebt[_token] = (_newAmount * accRewardPerShare[_token]) / ACC_REWARD_PER_SHARE_PRECISION;
-
+                bool addedToForgone = false;
                 if (_pending != 0 || user.rewardPayoutAmount[_token] != 0) {
                     uint256 _stakingMultiplier = getStakingMultiplier(_msgSender());
                     uint256 _fullReward = _pending;
@@ -329,6 +329,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
                             //find the difference between max potential reward and given reward
                             uint256 unclaimedPotentialReward = _pending - _currentReward;
                             forgoneRewardsPool[_token] += unclaimedPotentialReward;
+                            addedToForgone = true;
                         }
 
                         if (user.lastRewardStakingMultiplier == 0) {
@@ -360,7 +361,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
                 }
 
                 // if a user withdraws completely he loses any potential rewards he could have claimed in the future
-                if (_newAmount == 0) {
+                if (_newAmount == 0 && addedToForgone == false) {
                     if (user.rewardPayoutAmount[_token] > user.paidRewards[_token]) {
                         forgoneRewardsPool[_token] += user.rewardPayoutAmount[_token] - user.paidRewards[_token];
                     } else {
@@ -421,7 +422,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
     function pendingExtraRewards(address _user, IERC20 _token) external view returns (uint256) {
         UserInfo storage user = userInfo[_user];
         uint256 _stakingMultiplier = getStakingMultiplier(_user);
-        if (_stakingMultiplier == 1e18 && user.amount > 350_000) {
+        if (_stakingMultiplier == 1e18 && user.amount > 500) {
             uint256 _pendingExtraReward = 0;
             if ((user.amount * forgoneRewardsPool[_token]) / internalTgtBalance > user.extraRewardsDebt[_token]) {
                 _pendingExtraReward += (user.amount * forgoneRewardsPool[_token]) / internalTgtBalance - user.extraRewardsDebt[_token];
@@ -486,7 +487,6 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         accRewardPerShare[_token] = accRewardPerShare[_token] +
             (_accruedReward * ACC_REWARD_PER_SHARE_PRECISION / _totalTgt);
         lastRewardBalance[_token] = _rewardBalance;
-//        console.log("accRewardPerShare after update: %s", accRewardPerShare[_token]);
     }
 
     /**
@@ -525,7 +525,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
             return 0;
         }
         uint256 timeDiff = block.timestamp - user.depositTimestamp;
-//        console.log("timeDiff: %s", timeDiff);
+
         if (timeDiff >= 365 days) {
             return 1e18;
         } else if (timeDiff >= 180 days) {
@@ -542,6 +542,33 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         }
         return 0;
     }
+
+    // Testing timing setup
+//    /// @notice This function returns the staking multiplier based on the time passed since the user deposited
+//    /// @param _user The address of the user
+//    function getStakingMultiplier(address _user) public view returns (uint256) {
+//        UserInfo storage user = userInfo[_user];
+//        if (user.depositTimestamp == 0) {
+//            return 0;
+//        }
+//        uint256 timeDiff = block.timestamp - user.depositTimestamp;
+//
+//        if (timeDiff >= 30 minutes) {
+//            return 1e18;
+//        } else if (timeDiff >= 15 minutes) {
+//            if (timeDiff > 15 minutes) {
+//                return (75e16 + calculatePart(25e16, calculatePercentage(timeDiff - 15 minutes, 15  minutes)));
+//            }
+//            else return 75e16;
+//        }
+//        else if (timeDiff >= 5 minutes) {
+//            if (timeDiff > 5 minutes) {
+//                return (5e17 + calculatePart(25e16, calculatePercentage(timeDiff - 5 minutes, 10 minutes)));
+//            }
+//            else return 5e17;
+//        }
+//        return 0;
+//    }
 
     /// @notice This function returns the part of a number based on the percentage(bps) given
     function calculatePart(uint256 amount, uint256 bps) public pure returns (uint256) {
