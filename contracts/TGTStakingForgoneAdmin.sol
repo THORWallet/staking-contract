@@ -18,7 +18,7 @@ import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
  * Every time `updateReward(token)` is called, We distribute the balance of that tokens as rewards to users that are
  * currently staking inside this contract, and they can claim it using `withdraw(0)`
  */
-contract TGTStaking is Ownable, ReentrancyGuard {
+contract TGTStakingForgoneAdmin is Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
     /// @notice Info of each user
@@ -27,14 +27,12 @@ contract TGTStaking is Ownable, ReentrancyGuard {
     /// @param lastRewardStakingMultiplier The last staking multiplier the user had when he claimed rewards
     /// @param rewardDebt The amount of reward tokens claimed by the user if used without the staking multiplier
     /// @param rewardPayoutAmount The amount of reward tokens that should be paid out to the user in total
-    /// @param extraRewardsDebt The amount of extra rewards claimed by the user when he has 2x staking multiplier and over 350k TGT staked
     struct UserInfo {
         uint256 amount;
         uint256 depositTimestamp;
         uint256 lastRewardStakingMultiplier;
         mapping(IERC20 => uint256) rewardDebt;
         mapping(IERC20 => uint256) rewardPayoutAmount;
-        mapping(IERC20 => uint256) extraRewardsDebt;
         mapping(IERC20 => uint256) paidRewards;
         /**
          * @notice We do some fancy math here. Basically, any point in time, the amount of TGTs
@@ -87,8 +85,8 @@ contract TGTStaking is Ownable, ReentrancyGuard {
     /// @notice Emitted when a user claims reward
     event ClaimReward(address indexed user, address indexed rewardToken, uint256 amount);
 
-    /// @notice Emitted when a user claims an extra reward with 2x staking multiplier
-    event ClaimExtraReward(address indexed user, address indexed rewardToken, uint256 amount);
+    /// @notice Emitted when the admin claims forgone rewards
+    event ClaimForgoneRewards(address indexed user, address indexed rewardToken, uint256 amount);
 
     /// @notice Emitted when a user emergency withdraws its TGT
     event EmergencyWithdraw(address indexed user, uint256 amount);
@@ -391,54 +389,21 @@ contract TGTStaking is Ownable, ReentrancyGuard {
     }
 
     /**
-     * @notice Withdraws rewards from the forgoneRewardsPool for the stakers with 2x multiplier and over 350k TGT staked
+     * @notice Withdraws rewards from the forgoneRewardsPool
      */
-    function claimExtraRewards() public nonReentrant {
-        UserInfo storage user = userInfo[_msgSender()];
-        uint256 _stakingMultiplier = getStakingMultiplier(_msgSender());
-        require(_stakingMultiplier == 1e18 && user.amount > 350_000, "TGTStaking: not eligible for extra rewards");
-
+    function claimForgoneRewards() external nonReentrant onlyOwner {
         uint256 _len = rewardTokens.length;
         for (uint256 i; i < _len; i++) {
             IERC20 _token = rewardTokens[i];
 
-            uint256 _pendingExtraReward = 0;
-            if ((user.amount * forgoneRewardsPool[_token]) / internalTgtBalance > user.extraRewardsDebt[_token]) {
-                _pendingExtraReward = (user.amount * forgoneRewardsPool[_token]) / internalTgtBalance - user.extraRewardsDebt[_token];
-            }
-            user.extraRewardsDebt[_token] = _pendingExtraReward;
-            forgoneRewardsPool[_token] -= _pendingExtraReward;
+            uint256 _pendingExtraReward = forgoneRewardsPool[_token];
+            forgoneRewardsPool[_token] = 0;
 
             if (_pendingExtraReward != 0) {
                 safeTokenTransfer(_token, _msgSender(), _pendingExtraReward);
-                emit ClaimExtraReward(_msgSender(), address(_token), _pendingExtraReward);
+                emit ClaimForgoneRewards(_msgSender(), address(_token), _pendingExtraReward);
             }
         }
-    }
-
-    /**
-     * @notice Estimates the next pending reward from the forgoneRewardsPool for the stakers with 2x multiplier and over 350k TGT staked
-     */
-    function pendingExtraRewards(address _user, IERC20 _token) external view returns (uint256) {
-        UserInfo storage user = userInfo[_user];
-        uint256 _stakingMultiplier = getStakingMultiplier(_user);
-        if (_stakingMultiplier == 1e18 && user.amount > 500) {
-            uint256 _pendingExtraReward = 0;
-            if ((user.amount * forgoneRewardsPool[_token]) / internalTgtBalance > user.extraRewardsDebt[_token]) {
-                _pendingExtraReward += (user.amount * forgoneRewardsPool[_token]) / internalTgtBalance - user.extraRewardsDebt[_token];
-            }
-            return _pendingExtraReward;
-        }
-        return 0;
-    }
-
-    /**
-     * @notice Withdraws and claims extra rewards at the same time
-     */
-
-    function withdrawAndClaimExtraRewards(uint256 _amount) external {
-        withdraw(_amount);
-        claimExtraRewards();
     }
 
     /**
@@ -542,33 +507,6 @@ contract TGTStaking is Ownable, ReentrancyGuard {
         }
         return 0;
     }
-
-    // Polygon Testing timing setup
-//    /// @notice This function returns the staking multiplier based on the time passed since the user deposited
-//    /// @param _user The address of the user
-//    function getStakingMultiplier(address _user) public view returns (uint256) {
-//        UserInfo storage user = userInfo[_user];
-//        if (user.depositTimestamp == 0) {
-//            return 0;
-//        }
-//        uint256 timeDiff = block.timestamp - user.depositTimestamp;
-//
-//        if (timeDiff >= 30 minutes) {
-//            return 1e18;
-//        } else if (timeDiff >= 15 minutes) {
-//            if (timeDiff > 15 minutes) {
-//                return (75e16 + calculatePart(25e16, calculatePercentage(timeDiff - 15 minutes, 15  minutes)));
-//            }
-//            else return 75e16;
-//        }
-//        else if (timeDiff >= 5 minutes) {
-//            if (timeDiff > 5 minutes) {
-//                return (5e17 + calculatePart(25e16, calculatePercentage(timeDiff - 5 minutes, 10 minutes)));
-//            }
-//            else return 5e17;
-//        }
-//        return 0;
-//    }
 
     /// @notice This function returns the part of a number based on the percentage(bps) given
     function calculatePart(uint256 amount, uint256 bps) public pure returns (uint256) {
