@@ -400,8 +400,8 @@ contract TGTStakingForgoneAdmin is Ownable, ReentrancyGuard {
             forgoneRewardsPool[_token] = 0;
 
             if (_pendingExtraReward != 0) {
-                safeTokenTransfer(_token, _msgSender(), _pendingExtraReward);
-                emit ClaimForgoneRewards(_msgSender(), address(_token), _pendingExtraReward);
+                safeTokenTransfer(_token, owner(), _pendingExtraReward);
+                emit ClaimForgoneRewards(owner(), address(_token), _pendingExtraReward);
             }
         }
     }
