@@ -29,8 +29,8 @@ async function main() {
 
     console.log('TGTStaking with forgone rewards claimable by admin deployed to:', tgtStaking.address);
 
-    //delay for 15 seconds
-    await new Promise(resolve => setTimeout(resolve, 15000));
+    //delay for 25 seconds
+    await new Promise(resolve => setTimeout(resolve, 25000));
 
     await hre.run("verify:verify", {
         address: tgtStaking.address,
