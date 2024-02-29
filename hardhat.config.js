@@ -48,11 +48,11 @@ module.exports = {
             gasPrice: 27000000000
         },
         sepolia : {
-            url: "https://ethereum-sepolia-rpc.publicnode.com",
+            url: "https://11155111.rpc.thirdweb.com",
             accounts: {
                 mnemonic: process.env.MNEMONIC
             },
-            gasPrice: 500000000
+            gasPrice: 5000000000
         }
     },
     solidity: {
