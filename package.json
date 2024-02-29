@@ -37,5 +37,8 @@
     "yargs-parser": "^13.1.2",
     "mem": "^4.0.0",
     "lodash": "^4.17.21"
+  },
+  "dependencies": {
+    "@summa-tx/memview-sol": "^2.1.2"
   }
 }

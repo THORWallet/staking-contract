@@ -45,7 +45,14 @@ module.exports = {
             accounts: {
                 mnemonic: process.env.MNEMONIC
             },
-            gasPrice: 30000000000
+            gasPrice: 27000000000
+        },
+        sepolia : {
+            url: "https://ethereum-sepolia-rpc.publicnode.com",
+            accounts: {
+                mnemonic: process.env.MNEMONIC
+            },
+            gasPrice: 500000000
         }
     },
     solidity: {
