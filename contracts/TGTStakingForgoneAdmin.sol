@@ -484,6 +484,33 @@ contract TGTStakingForgoneAdmin is Ownable, ReentrancyGuard {
 
     /// @notice This function returns the staking multiplier based on the time passed since the user deposited
     /// @param _user The address of the user
+//    function getStakingMultiplier(address _user) public view returns (uint256) {
+//        UserInfo storage user = userInfo[_user];
+//        if (user.depositTimestamp == 0) {
+//            return 0;
+//        }
+//        uint256 timeDiff = block.timestamp - user.depositTimestamp;
+//
+//        if (timeDiff >= 365 days) {
+//            return 1e18;
+//        } else if (timeDiff >= 180 days) {
+//            if (timeDiff > (180 days)) {
+//                return (75e16 + calculatePart(25e16, calculatePercentage(timeDiff - 180 days, 185 days)));
+//            }
+//            else return 75e16;
+//        }
+//        else if (timeDiff >= 7 days) {
+//            if (timeDiff > 7 days) {
+//                return (5e17 + calculatePart(25e16, calculatePercentage(timeDiff - 7 days, 173 days)));
+//            }
+//            else return 5e17;
+//        }
+//        return 0;
+//    }
+
+    // Polygon Testing timing setup
+    /// @notice This function returns the staking multiplier based on the time passed since the user deposited
+    /// @param _user The address of the user
     function getStakingMultiplier(address _user) public view returns (uint256) {
         UserInfo storage user = userInfo[_user];
         if (user.depositTimestamp == 0) {
@@ -491,22 +518,23 @@ contract TGTStakingForgoneAdmin is Ownable, ReentrancyGuard {
         }
         uint256 timeDiff = block.timestamp - user.depositTimestamp;
 
-        if (timeDiff >= 365 days) {
+        if (timeDiff >= 30 minutes) {
             return 1e18;
-        } else if (timeDiff >= 180 days) {
-            if (timeDiff > (180 days)) {
-                return (75e16 + calculatePart(25e16, calculatePercentage(timeDiff - 180 days, 185 days)));
+        } else if (timeDiff >= 15 minutes) {
+            if (timeDiff > 15 minutes) {
+                return (75e16 + calculatePart(25e16, calculatePercentage(timeDiff - 15 minutes, 15  minutes)));
             }
             else return 75e16;
         }
-        else if (timeDiff >= 7 days) {
-            if (timeDiff > 7 days) {
-                return (5e17 + calculatePart(25e16, calculatePercentage(timeDiff - 7 days, 173 days)));
+        else if (timeDiff >= 5 minutes) {
+            if (timeDiff > 5 minutes) {
+                return (5e17 + calculatePart(25e16, calculatePercentage(timeDiff - 5 minutes, 10 minutes)));
             }
             else return 5e17;
         }
         return 0;
     }
+
 
     /// @notice This function returns the part of a number based on the percentage(bps) given
     function calculatePart(uint256 amount, uint256 bps) public pure returns (uint256) {

@@ -73,4 +73,8 @@ interface ITokenGateway {
         uint256 _amount,
         bytes memory _data
     ) external view returns (bytes memory);
+
+    function getGateway(address _token) external view returns (address gateway);
+    function defaultGateway() external view returns (address gateway);
+
 }

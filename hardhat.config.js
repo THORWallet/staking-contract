@@ -28,6 +28,9 @@ module.exports = {
                 auto: true, // required to be able to run tests correctly
                 interval: 0
             },
+            // forking: {
+            //     url: "https://rpc.tenderly.co/fork/6ceba0d1-e195-466e-af11-a1a3c583e9a8",
+            // },
             accounts: {
                 mnemonic: process.env.MNEMONIC
             }
@@ -40,19 +43,19 @@ module.exports = {
             gasPrice: 200000000000
         },
         ethereum: {
-            url:"https://eth-mainnet.g.alchemy.com/v2/" + process.env.ALCHEMY_API_KEY,
+            url: "https://eth-mainnet.g.alchemy.com/v2/" + process.env.ALCHEMY_API_KEY,
             // url: "https://mainnet.infura.io/v3/" + process.env.INFURA_API_KEY,
             accounts: {
                 mnemonic: process.env.MNEMONIC
             },
             gasPrice: 27000000000
         },
-        sepolia : {
+        sepolia: {
             url: "https://11155111.rpc.thirdweb.com",
             accounts: {
                 mnemonic: process.env.MNEMONIC
             },
-            gasPrice: 5000000000
+            gasPrice: 15000000000
         }
     },
     solidity: {
@@ -76,19 +79,19 @@ module.exports = {
             }
         ],
     },
-        gasReporter: {
-            currency: "USD",
-            token: "ETH",
-            gasPrice: 45,
-            // gasPriceApi:
-            //     "https://api.etherscan.com/api?module=proxy&action=eth_gasPrice&apikey=" + process.env.ETHERSCAN_API_KEY,
-            enabled: process.env.REPORT_GAS,
-            excludeContracts: [],
-            src: "./contracts",
-            coinmarketcap: process.env.COINMARKETCAP_API_KEY
-        },
+    gasReporter: {
+        currency: "USD",
+        token: "ETH",
+        gasPrice: 45,
+        // gasPriceApi:
+        //     "https://api.etherscan.com/api?module=proxy&action=eth_gasPrice&apikey=" + process.env.ETHERSCAN_API_KEY,
+        enabled: process.env.REPORT_GAS,
+        excludeContracts: [],
+        src: "./contracts",
+        coinmarketcap: process.env.COINMARKETCAP_API_KEY
+    },
 
-        etherscan: {
-            apiKey: process.env.ETHERSCAN_API_KEY
-        }
-    };
+    etherscan: {
+        apiKey: process.env.ETHERSCAN_API_KEY
+    }
+};

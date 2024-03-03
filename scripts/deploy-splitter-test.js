@@ -24,7 +24,9 @@ async function main() {
 
     const tgt = TGT.attach("0x108a850856Db3f85d0269a2693D896B394C80325");
     const usdc = USDC.attach("0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238");
-    const tokenMessenger = "0xcE18836b233C83325Cc8848CA4487e94C6288264";
+    const tokenMessenger = "0xcE18836b233C83325Cc8848CA4487e94C6288264"; // sepolia
+    // const tokenMessenger = "0xa3A7B6F88361F48403514059F1F16C8E78d60EeC"; eth mainnet
+
     // const staking = TGTStaking.attach("0x2bd7Ec577be3C9e8fD04012E96b4DFFA945DA43e");
 
     console.log("Deploying splitter contract");
@@ -56,16 +58,22 @@ async function main() {
     console.log("Splitter contract was verified successfully");
 
     await usdc.approve(splitter.address, utils.parseUnits("1", 6));
-    await new Promise(resolve => setTimeout(resolve, 25000));
+    await new Promise(resolve => setTimeout(resolve, 15000));
     console.log('USDC approved for the splitter');
 
-    await usdc.transfer(splitter.address, utils.parseUnits("0.25", 6));
+    await usdc.transfer(splitter.address, utils.parseUnits("0.1", 6));
     console.log('Splitter funded with USDC');
 
-    await new Promise(resolve => setTimeout(resolve, 30000));
+    await new Promise(resolve => setTimeout(resolve, 15000));
+
+    console.log("Default gateway: ", await splitter.defaultGateway());
+    console.log("Gateway for USDC: ", await splitter.getGateway());
+
+    await splitter.approveUsdcToArbitrum(utils.parseUnits("5", 6));
+    console.log('USDC approved for the Arbitrum');
 
     console.log('USDC balance of splitter: ', (await usdc.balanceOf(splitter.address)).toString());
-    await splitter.releaseUsdcFunds();
+    await splitter.releaseUsdcFunds({value: ethers.utils.parseEther("0.001")});
     console.log('Splitter funds released');
 
 }
