@@ -34,49 +34,13 @@ contract Splitter is PaymentSplitter, Ownable {
     }
 
     function releaseUsdcFunds() public payable {
-//        release(IERC20(usdc), treasury);
-//        release(IERC20(usdc), affiliateCollector);
-//        console.log("USDC balance: ", IERC20(usdc).balanceOf(address(this)));
         IERC20(usdc).approve(arbitrumGateway.getGateway(usdc), IERC20(usdc).balanceOf(address(this)));
-//        circleTokenMessenger.depositForBurn(IERC20(usdc).balanceOf(address(this)), 3, bytes32(bytes20(treasury)), usdc);
-
         uint256 nativeTokenTotalFee = maxGas * gasPriceBid;
         bytes memory userEncodedData = abi.encode(maxSubmissionCost, "", nativeTokenTotalFee);
-//        console.log("USDC allowance: ", IERC20(usdc).allowance(address(this), address(arbitrumGateway)));
-
         arbitrumGateway.outboundTransfer{value: msg.value}(usdc, treasury, IERC20(usdc).balanceOf(address(this)), maxGas, gasPriceBid, userEncodedData);
     }
 
-    function approveUsdcToArbitrum(uint256 _amount) external {
-//        console.log("USDC balance: ", IERC20(usdc).balanceOf(address(this)));
-//        console.log("USDC allowance: ", IERC20(usdc).allowance(address(this), address(arbitrumGateway)));
-//        console.log("Arbitrum gateway for approval: ", arbitrumGateway.getGateway(usdc));
-        IERC20(usdc).approve(arbitrumGateway.getGateway(usdc), _amount);
-    }
-
-    function getGateway() external view returns (address) {
-        return arbitrumGateway.getGateway(usdc);
-    }
-
-    function defaultGateway() external view returns (address) {
-        return arbitrumGateway.defaultGateway();
-    }
-
-    function bridgeUsdcToArbitrum(uint256 _amount) external {
-        IERC20(usdc).approve(arbitrumGateway.getGateway(usdc), _amount);
-        uint256 nativeTokenTotalFee = maxGas * gasPriceBid;
-        bytes memory userEncodedData = abi.encode(maxSubmissionCost, "", nativeTokenTotalFee);
-        arbitrumGateway.outboundTransfer(usdc, treasury, _amount, maxGas, gasPriceBid, userEncodedData);
-    }
-
-    function transferAllToArbitrum() external {
-        uint256 nativeTokenTotalFee = maxGas * gasPriceBid;
-        bytes memory userEncodedData = abi.encode(maxSubmissionCost, "", nativeTokenTotalFee);
-        arbitrumGateway.outboundTransfer(usdc, treasury, IERC20(usdc).balanceOf(address(this)), maxGas, gasPriceBid, userEncodedData);
-//        arbitrumGateway.outboundTransfer(tgt, treasury, IERC20(tgt).balanceOf(address(this)), maxGas, gasPriceBid, userEncodedData);
-    }
-
-    function rawBridgeUsdcToArbitrum(uint256 _amount, uint256 _maxGas, uint256 _gasPriceBid, uint256 _maxSubmissionCost) external payable {
+    function customBridgeUsdcToArbitrum(uint256 _amount, uint256 _maxGas, uint256 _gasPriceBid, uint256 _maxSubmissionCost) external payable {
         IERC20(usdc).approve(arbitrumGateway.getGateway(usdc), _amount);
         uint256 nativeTokenTotalFee = _maxGas * _gasPriceBid;
         bytes memory userEncodedData = abi.encode(_maxSubmissionCost, "", nativeTokenTotalFee);

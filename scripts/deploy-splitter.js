@@ -24,7 +24,7 @@ async function main() {
 
     const tgt = TGT.attach("0x108a850856Db3f85d0269a2693D896B394C80325");
     const usdc = USDC.attach("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48");
-    const tokenMessenger = "0xbd3fa81b58ba92a82136038b25adec7066af3155";
+    const tokenMessenger = "0x72Ce9c846789fdB6fC1f34aC4AD25Dd9ef7031ef"; // ethereum
     // const staking = TGTStaking.attach("0x2bd7Ec577be3C9e8fD04012E96b4DFFA945DA43e");
 
     console.log("Deploying splitter contract");
@@ -39,8 +39,6 @@ async function main() {
 
     console.log('Splitter deployed to:', splitter.address);
 
-
-
     //delay for 15 seconds
     await new Promise(resolve => setTimeout(resolve, 15000));
 
@@ -51,9 +49,9 @@ async function main() {
             [affiliateCollector,
                 treasury],
             [utils.parseEther("0.5"),
-                utils.parseEther("0.5")]],
+                utils.parseEther("0.5")],
+            tokenMessenger],
     })
-
 
 }
 
@@ -63,4 +61,3 @@ main().catch((error) => {
     console.error(error);
     process.exitCode = 1;
 });
-

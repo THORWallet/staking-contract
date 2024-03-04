@@ -66,12 +66,6 @@ async function main() {
 
     await new Promise(resolve => setTimeout(resolve, 15000));
 
-    console.log("Default gateway: ", await splitter.defaultGateway());
-    console.log("Gateway for USDC: ", await splitter.getGateway());
-
-    await splitter.approveUsdcToArbitrum(utils.parseUnits("5", 6));
-    console.log('USDC approved for the Arbitrum');
-
     console.log('USDC balance of splitter: ', (await usdc.balanceOf(splitter.address)).toString());
     await splitter.releaseUsdcFunds({value: ethers.utils.parseEther("0.001")});
     console.log('Splitter funds released');

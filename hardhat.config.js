@@ -48,14 +48,14 @@ module.exports = {
             accounts: {
                 mnemonic: process.env.MNEMONIC
             },
-            gasPrice: 27000000000
+            gasPrice: 58000000000
         },
         sepolia: {
             url: "https://11155111.rpc.thirdweb.com",
             accounts: {
                 mnemonic: process.env.MNEMONIC
             },
-            gasPrice: 15000000000
+            gasPrice: 25000000000
         }
     },
     solidity: {
