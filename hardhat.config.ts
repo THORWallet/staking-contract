@@ -8,11 +8,11 @@ require('catapulta/hardhat');
 require('@nomicfoundation/hardhat-verify');
 require('@openzeppelin/hardhat-upgrades');
 require('dotenv').config();
-
-
-const {task} = require("hardhat/config");
+import {task} from "hardhat/config";
+import "./tasks/bridge-bot";
 
 task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
+    // @ts-ignore
     const accounts = await hre.ethers.getSigners();
 
     for (const account of accounts) {
@@ -28,9 +28,9 @@ module.exports = {
                 auto: true, // required to be able to run tests correctly
                 interval: 0
             },
-            // forking: {
-            //     url: "https://rpc.tenderly.co/fork/6ceba0d1-e195-466e-af11-a1a3c583e9a8",
-            // },
+            forking: {
+                url: "https://rpc.tenderly.co/fork/85dc06dc-9fee-40fe-bb74-1947cb8113e8",
+            },
             accounts: {
                 mnemonic: process.env.MNEMONIC
             }
@@ -56,7 +56,15 @@ module.exports = {
                 mnemonic: process.env.MNEMONIC
             },
             gasPrice: 25000000000
-        }
+        },
+        avax: {
+            url: "https://api.avax.network/ext/bc/C/rpc",
+            accounts: {
+                mnemonic: process.env.MNEMONIC
+            },
+            gasPrice: 225000000000,
+            chainId: 43114,
+        },
     },
     solidity: {
         compilers: [{

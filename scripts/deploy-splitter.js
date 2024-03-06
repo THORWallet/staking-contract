@@ -23,8 +23,8 @@ async function main() {
     const USDC = await ethers.getContractFactory("USDC");
 
     const tgt = TGT.attach("0x108a850856Db3f85d0269a2693D896B394C80325");
-    const usdc = USDC.attach("0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48");
-    const tokenMessenger = "0x72Ce9c846789fdB6fC1f34aC4AD25Dd9ef7031ef"; // ethereum
+    const usdc = USDC.attach("0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E");
+    const tokenMessenger = "0x6B25532e1060CE10cc3B0A99e5683b91BFDe6982";
     // const staking = TGTStaking.attach("0x2bd7Ec577be3C9e8fD04012E96b4DFFA945DA43e");
 
     console.log("Deploying splitter contract");

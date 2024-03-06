@@ -22,7 +22,9 @@
     "hardhat-gas-reporter": "^1.0.10",
     "mem": ">=4.0.0",
     "merkletreejs": "^0.2.24",
-    "solhint": "^4.0.0"
+    "solhint": "^4.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^4.9.5"
   },
   "scripts": {
     "clean": "hardhat clean",
@@ -39,6 +41,7 @@
     "lodash": "^4.17.21"
   },
   "dependencies": {
-    "@summa-tx/memview-sol": "^2.1.2"
+    "@summa-tx/memview-sol": "^2.1.2",
+    "cross-fetch": "^4.0.0"
   }
 }
