@@ -10,6 +10,7 @@ require('@openzeppelin/hardhat-upgrades');
 require('dotenv').config();
 import {task} from "hardhat/config";
 import "./tasks/bridge-bot";
+import "./tasks/bridge-tx";
 
 task("accounts", "Prints the list of accounts", async (taskArgs, hre) => {
     // @ts-ignore

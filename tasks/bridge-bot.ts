@@ -6,7 +6,6 @@ import {task} from "hardhat/config";
 
 import * as ethers from "ethers";
 import fetch from "cross-fetch";
-import {Contract} from "ethers";
 import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
 
 interface AttestationResponse {
@@ -24,28 +23,53 @@ task("bridge-bot", "USDC Bridge bot")
         let signer = signers[0];
         // const Splitter = await hre.artifacts.readArtifact("Splitter");
         // const USDC = await hre.artifacts.readArtifact("USDC");
-        const Splitter = require('../artifacts/contracts/Splitter.sol/Splitter.json');
+        // const Splitter = require('../artifacts/contracts/Splitter.sol/Splitter.json');
         const USDC = require('../artifacts/contracts/mocks/USDC.sol/USDC.json');
         const TokenMessenger = require('../artifacts/contracts/interfaces/ITokenMessenger.sol/ITokenMessenger.json');
 
-        console.log(new Date().toISOString(), '- Fetching USDC balance...')
-        // @ts-ignore
         const usdc = await hre.ethers.getContractAt(USDC.abi, '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E', signer);
-        // @ts-ignore
-        console.log(new Date().toISOString(), '- Fetching Splitter contract...')
-        const splitter = await hre.ethers.getContractAt(Splitter.abi, '0x724C13E376Aa9b506fA5263463f3c780B36Bd79C', signer);
-
-        const splitterBalance = await usdc.balanceOf(splitter.address)
-        console.log(new Date().toISOString(), '- Splitter USDC balance:', ethers.utils.formatUnits(splitterBalance, 6))
-        if (splitterBalance > 0) {
+        // const splitter = await hre.ethers.getContractAt(Splitter.abi, '0x724C13E376Aa9b506fA5263463f3c780B36Bd79C', signer);
+        const tokenMessenger = await hre.ethers.getContractAt(TokenMessenger.abi, "0x6B25532e1060CE10cc3B0A99e5683b91BFDe6982", signer);
+        const treasuryAddress = "0xCF23e5020497cE7129c02041FCceF9A0BA5e6554";
+        // const splitterBalance = await usdc.balanceOf(splitter.address)
+        const signerBalance = await usdc.balanceOf(signer.address)
+        console.log(new Date().toISOString(), '- Splitter USDC balance:', ethers.utils.formatUnits(signerBalance, 6))
+        if (signerBalance > 0) {
             console.log(new Date().toISOString(), '- USDC balance is not empty, triggering a bridge tx...')
-            const tx = await splitter.releaseUsdcFunds();
-            console.log('Splitter funds sent to Circle bridge');
+            // const tx = await splitter.releaseUsdcFunds();
+            // console.log('Splitter funds sent to Circle bridge');
 
-            // await tx.wait(3);
-            console.log('Tx data', tx)
-            console.log("Deposited - txHash:", tx.hash);
-            const receipt = await hre.ethers.provider.getTransactionReceipt(tx.hash);
+            // Amount that will be transferred
+            const amount = ethers.utils.parseUnits("0.01", 6);
+
+            // Approve messenger contract to withdraw from our active eth address
+            console.log(`Approving USDC transfer on Avax}...`);
+
+            const approveMessengerWithdraw = await usdc.approve(tokenMessenger.address, amount);
+
+            console.log(
+                "Approved - txHash:",
+                approveMessengerWithdraw.hash
+            );
+
+            await approveMessengerWithdraw.wait(1);
+
+            // Burn USDC
+            console.log(`Depositing USDC to Token Messenger contract on Avax...`);
+            const destinationAddressInBytes32 = ethers.utils.defaultAbiCoder.encode(
+                ["address"],
+                [treasuryAddress]
+            );
+            const burnUSDC = await tokenMessenger.depositForBurn(
+                amount,
+                3, // destinationChainId (3 for Arbitrum)
+                destinationAddressInBytes32,
+                usdc.address,
+            );
+            console.log("Deposited - txHash:", burnUSDC.hash);
+            await burnUSDC.wait(1);
+
+            const receipt = await hre.ethers.provider.getTransactionReceipt(burnUSDC.hash);
             console.log("Receipt:", receipt);
             console.log("Logs:", receipt.logs);
 
@@ -81,16 +105,15 @@ task("bridge-bot", "USDC Bridge bot")
             console.log(`Obtained Signature: ${attestationSignature}`);
 
             const provider = new ethers.providers.JsonRpcProvider("https://arb1.arbitrum.io/rpc");
-            const signer = wallet.connect(provider);
-            const arbitrumMessageTransmitter = await hre.ethers.getContractAt(TokenMessenger.abi, '0xC30362313FBBA5cf9163F0bb16a0e01f01A896ca', signer);
+            const signer2 = wallet.connect(provider);
+            const arbitrumMessageTransmitter = await hre.ethers.getContractAt(TokenMessenger.abi, '0xC30362313FBBA5cf9163F0bb16a0e01f01A896ca', signer2);
 
             // Using the message bytes and signature receive the funds on destination chain and address
             console.log(`Receiving funds on Arbitrum...`);
-            const receiveTx = await arbitrumMessageTransmitter.call(
-                "receiveMessage",
-                [messageBytes, attestationSignature]
+            const receiveTx = await arbitrumMessageTransmitter.receiveMessage(
+                messageBytes, attestationSignature
             );
-            // await receiveTx.wait(3);
+            await receiveTx.wait(1);
             console.log(
                 "Received funds successfully - txHash:",
                 receiveTx.hash
