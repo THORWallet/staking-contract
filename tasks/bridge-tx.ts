@@ -29,6 +29,7 @@ task("bridge-tx", "USDC Bridge bot")
         const Splitter = require('../artifacts/contracts/Splitter.sol/Splitter.json');
         const USDC = require('../artifacts/contracts/mocks/USDC.sol/USDC.json');
         const TokenMessenger = require('../artifacts/contracts/interfaces/ITokenMessenger.sol/ITokenMessenger.json');
+        const MessageTransmitter = require('../artifacts/contracts/interfaces/IMessageTransmitter.sol/IMessageTransmitter.json');
 
         console.log(new Date().toISOString(), '- Fetching USDC balance...')
         // @ts-ignore
@@ -37,7 +38,7 @@ task("bridge-tx", "USDC Bridge bot")
         console.log(new Date().toISOString(), '- Fetching Splitter contract...')
         const splitter = await hre.ethers.getContractAt(Splitter.abi, '0x724C13E376Aa9b506fA5263463f3c780B36Bd79C', signer);
 
-        const txHash = '0x9796fc0c802ac72601ded1f3b9763a07a6a5fe3e87f5a5ae72bb58c02ff1a461';
+        const txHash = '0x207195cb3ef1de1860214a97af3c8409833295714f50171e53b0de58cdf91c7d';
 
         const receipt = await hre.ethers.provider.getTransactionReceipt(txHash);
         // console.log("Receipt:", receipt);
@@ -74,7 +75,7 @@ task("bridge-tx", "USDC Bridge bot")
         let attestationResponse: AttestationResponse = {status: "pending"};
         while (attestationResponse.status !== "complete") {
             const response = await fetch(
-                `https://iris-api-sandbox.circle.com/attestations/${messageHash}`
+                `https://iris-api.circle.com/attestations/${messageHash}`
             );
             attestationResponse = await response.json();
             console.log(attestationResponse);
@@ -87,14 +88,12 @@ task("bridge-tx", "USDC Bridge bot")
 
         const provider = new ethers.providers.JsonRpcProvider("https://arb1.arbitrum.io/rpc");
         const signer2 = wallet.connect(provider);
-        const arbitrumMessageTransmitter = await hre.ethers.getContractAt(TokenMessenger.abi, '0xC30362313FBBA5cf9163F0bb16a0e01f01A896ca', signer2);
+        const arbitrumMessageTransmitter = await hre.ethers.getContractAt(MessageTransmitter.abi, '0xC30362313FBBA5cf9163F0bb16a0e01f01A896ca', signer2);
 
         // Using the message bytes and signature receive the funds on destination chain and address
         console.log(`Receiving funds on Arbitrum...`);
-        const receiveTx = await arbitrumMessageTransmitter.call(
-            "receiveMessage",
-            [messageBytes, attestationSignature]
-        );
+        const receiveTx = await arbitrumMessageTransmitter.receiveMessage(messageBytes, attestationSignature);
+
         // await receiveTx.wait(3);
         console.log(
             "Received funds successfully - txHash:",

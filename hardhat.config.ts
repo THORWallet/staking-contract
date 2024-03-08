@@ -66,6 +66,13 @@ module.exports = {
             gasPrice: 225000000000,
             chainId: 43114,
         },
+        arbitrum: {
+            url: "https://arb1.arbitrum.io/rpc",
+            accounts: {
+                mnemonic: process.env.MNEMONIC
+            },
+            chainId: 42161
+        },
     },
     solidity: {
         compilers: [{

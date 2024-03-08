@@ -28,9 +28,11 @@ task("bridge-bot", "USDC Bridge bot")
         const TokenMessenger = require('../artifacts/contracts/interfaces/ITokenMessenger.sol/ITokenMessenger.json');
         const MessageTransmitter = require('../artifacts/contracts/interfaces/IMessageTransmitter.sol/IMessageTransmitter.json');
 
-        const usdc = await hre.ethers.getContractAt(USDC.abi, '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E', signer);
+        // const usdc = await hre.ethers.getContractAt(USDC.abi, '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E', signer);
+        const usdc = await hre.ethers.getContractAt(USDC.abi, '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238', signer);
         // const splitter = await hre.ethers.getContractAt(Splitter.abi, '0x724C13E376Aa9b506fA5263463f3c780B36Bd79C', signer);
-        const tokenMessenger = await hre.ethers.getContractAt(TokenMessenger.abi, "0x6B25532e1060CE10cc3B0A99e5683b91BFDe6982", signer);
+        // const tokenMessenger = await hre.ethers.getContractAt(TokenMessenger.abi, "0x6B25532e1060CE10cc3B0A99e5683b91BFDe6982", signer);
+        const tokenMessenger = await hre.ethers.getContractAt(TokenMessenger.abi, "0x9f3B8679c73C2Fef8b59B4f3444d4e156fb70AA5", signer);
         const treasuryAddress = "0xCF23e5020497cE7129c02041FCceF9A0BA5e6554";
         // const splitterBalance = await usdc.balanceOf(splitter.address)
         const signerBalance = await usdc.balanceOf(signer.address)
@@ -94,7 +96,7 @@ task("bridge-bot", "USDC Bridge bot")
             let attestationResponse: AttestationResponse = {status: "pending"};
             while (attestationResponse.status !== "complete") {
                 const response = await fetch(
-                    `https://iris-api.circle.com/attestations/${messageHash}`
+                    `https://iris-api-sandbox.circle.com/attestations/${messageHash}`
                 );
                 attestationResponse = await response.json();
                 console.log(attestationResponse);
@@ -105,10 +107,11 @@ task("bridge-bot", "USDC Bridge bot")
             const attestationSignature = attestationResponse.attestation;
             console.log(`Obtained Signature: ${attestationSignature}`);
 
-            const provider = new ethers.providers.JsonRpcProvider("https://arb1.arbitrum.io/rpc");
-
+            // const provider = new ethers.providers.JsonRpcProvider("https://arb1.arbitrum.io/rpc");
+            const provider = new ethers.providers.JsonRpcProvider("https://sepolia-rollup.arbitrum.io/rpc");
             const signer2 = wallet.connect(provider);
-            const arbitrumMessageTransmitter = await hre.ethers.getContractAt(MessageTransmitter.abi, '0xC30362313FBBA5cf9163F0bb16a0e01f01A896ca', signer2);
+            // const arbitrumMessageTransmitter = await hre.ethers.getContractAt(TokenMessenger.abi, '0xC30362313FBBA5cf9163F0bb16a0e01f01A896ca', signer2);
+            const arbitrumMessageTransmitter = await hre.ethers.getContractAt(MessageTransmitter.abi, '0xaCF1ceeF35caAc005e15888dDb8A3515C41B4872', signer2);
 
             // Using the message bytes and signature receive the funds on destination chain and address
             console.log(`Receiving funds on Arbitrum...`);
