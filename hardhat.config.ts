@@ -71,7 +71,9 @@ module.exports = {
             accounts: {
                 mnemonic: process.env.MNEMONIC
             },
-            chainId: 42161
+            chainId: 42161,
+            maxFeePerGas: 2000000000,
+            maxPriorityFeePerGas: 1500000000
         },
     },
     solidity: {

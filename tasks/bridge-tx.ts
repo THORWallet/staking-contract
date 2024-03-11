@@ -6,7 +6,7 @@ import {task} from "hardhat/config";
 
 import * as ethers from "ethers";
 import fetch from "cross-fetch";
-import {Contract} from "ethers";
+import {BigNumber, Contract} from "ethers";
 import {SignerWithAddress} from "@nomiclabs/hardhat-ethers/signers";
 
 import Web3 from "web3";
@@ -38,7 +38,7 @@ task("bridge-tx", "USDC Bridge bot")
         console.log(new Date().toISOString(), '- Fetching Splitter contract...')
         const splitter = await hre.ethers.getContractAt(Splitter.abi, '0x724C13E376Aa9b506fA5263463f3c780B36Bd79C', signer);
 
-        const txHash = '0x207195cb3ef1de1860214a97af3c8409833295714f50171e53b0de58cdf91c7d';
+        const txHash = '0xc610ff08b7a228e309f937982664d4b769a63c4ce9e732b8ae64ad001c229a6b';
 
         const receipt = await hre.ethers.provider.getTransactionReceipt(txHash);
         // console.log("Receipt:", receipt);
@@ -92,13 +92,14 @@ task("bridge-tx", "USDC Bridge bot")
 
         // Using the message bytes and signature receive the funds on destination chain and address
         console.log(`Receiving funds on Arbitrum...`);
-        const receiveTx = await arbitrumMessageTransmitter.receiveMessage(messageBytes, attestationSignature);
+        const gasLimit = ethers.utils.hexlify(15000000); // 15,000,000 gas limit
+        const gasPrice = ethers.utils.parseUnits('0.1', 'gwei'); // 0.1 Gwei gas price on Arbitrum
+        const receiveTx = await arbitrumMessageTransmitter.receiveMessage(messageBytes, attestationSignature, {
+            gasLimit: gasLimit,
+            gasPrice: gasPrice
+        });
 
-        // await receiveTx.wait(3);
-        console.log(
-            "Received funds successfully - txHash:",
-            receiveTx.hash
-        );
-
+        await receiveTx.wait(1);
+        console.log("Received funds successfully - txHash:", receiveTx.hash);
 
     });
