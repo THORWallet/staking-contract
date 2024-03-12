@@ -18,7 +18,7 @@ async function main() {
     console.log('Deployer address: ' + (await deployer.getAddress()));
 
     const Splitter = await ethers.getContractFactory("Splitter");
-    // const TGTStaking = await ethers.getContractFactory("TGTStaking");
+    const TGTStakingBasic = await ethers.getContractFactory("TGTStakingBasic");
     const TGT = await ethers.getContractFactory("MockTGT");
     const USDC = await ethers.getContractFactory("USDC");
 
@@ -27,7 +27,7 @@ async function main() {
     const tokenMessenger = "0x9f3B8679c73C2Fef8b59B4f3444d4e156fb70AA5"; // sepolia
     // const tokenMessenger = "0xa3A7B6F88361F48403514059F1F16C8E78d60EeC"; eth mainnet
 
-    // const staking = TGTStaking.attach("0x2bd7Ec577be3C9e8fD04012E96b4DFFA945DA43e");
+    const staking = TGTStakingBasic.attach("0x2bd7Ec577be3C9e8fD04012E96b4DFFA945DA43e");
 
     console.log("Deploying splitter contract");
 
@@ -36,7 +36,8 @@ async function main() {
         usdc.address,
         [affiliateCollector, treasury],
         [utils.parseEther("0.5"), utils.parseEther("0.5")],
-        tokenMessenger
+        tokenMessenger,
+        staking.address
     );
 
     console.log('Splitter deployed to:', splitter.address);
@@ -52,7 +53,8 @@ async function main() {
                 treasury],
             [utils.parseEther("0.5"),
                 utils.parseEther("0.5")],
-            tokenMessenger],
+            tokenMessenger,
+            staking.address],
     })
 
     console.log("Splitter contract was verified successfully");

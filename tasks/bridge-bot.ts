@@ -30,7 +30,7 @@ task("bridge-bot", "USDC Bridge bot")
         const MessageTransmitter = require('../artifacts/contracts/interfaces/IMessageTransmitter.sol/IMessageTransmitter.json');
 
         const usdc = await hre.ethers.getContractAt(USDC.abi, '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E', signer);
-        const splitter = await hre.ethers.getContractAt(Splitter.abi, '0x724C13E376Aa9b506fA5263463f3c780B36Bd79C', signer);
+        const splitter = await hre.ethers.getContractAt(Splitter.abi, '0xA7Da9EA0F28A770EFb713c84a2da240C8162B4dc', signer);
         const tokenMessenger = await hre.ethers.getContractAt(TokenMessenger.abi, "0x6B25532e1060CE10cc3B0A99e5683b91BFDe6982", signer);
         const treasuryAddress = "0xCF23e5020497cE7129c02041FCceF9A0BA5e6554";
         const splitterBalance = await usdc.balanceOf(splitter.address)
@@ -58,10 +58,10 @@ task("bridge-bot", "USDC Bridge bot")
 
             // Burn USDC
             // console.log(`Depositing USDC to Token Messenger contract on Avax...`);
-            // const destinationAddressInBytes32 = ethers.utils.defaultAbiCoder.encode(
-            //     ["address"],
-            //     [treasuryAddress]
-            // );
+            const destinationAddressInBytes32 = ethers.utils.defaultAbiCoder.encode(
+                ["address"],
+                [treasuryAddress]
+            );
             // const burnUSDC = await tokenMessenger.depositForBurn(
             //     amount,
             //     3, // destinationChainId (3 for Arbitrum)

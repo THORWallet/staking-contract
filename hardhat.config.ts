@@ -56,7 +56,7 @@ module.exports = {
             accounts: {
                 mnemonic: process.env.MNEMONIC
             },
-            gasPrice: 25000000000
+            gasPrice: 55000000000
         },
         avax: {
             url: "https://api.avax.network/ext/bc/C/rpc",

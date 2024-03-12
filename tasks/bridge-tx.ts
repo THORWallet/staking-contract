@@ -36,7 +36,7 @@ task("bridge-tx", "USDC Bridge bot")
         const usdc = await hre.ethers.getContractAt(USDC.abi, '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E', signer);
         // @ts-ignore
         console.log(new Date().toISOString(), '- Fetching Splitter contract...')
-        const splitter = await hre.ethers.getContractAt(Splitter.abi, '0x724C13E376Aa9b506fA5263463f3c780B36Bd79C', signer);
+        const splitter = await hre.ethers.getContractAt(Splitter.abi, '0xA7Da9EA0F28A770EFb713c84a2da240C8162B4dc', signer);
 
         const txHash = '0xc610ff08b7a228e309f937982664d4b769a63c4ce9e732b8ae64ad001c229a6b';
 

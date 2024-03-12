@@ -14,15 +14,17 @@ contract Splitter is PaymentSplitter, Ownable {
 
     address public affiliateCollector;
     address public treasury;
+    address public staking;
 
     ITokenMessenger public circleTokenMessenger;
 
-    constructor(address _tgt, address _usdc, address[] memory _payees, uint256[] memory shares_, address _circleTokenMessengerAddress) PaymentSplitter(_payees, shares_) {
+    constructor(address _tgt, address _usdc, address[] memory _payees, uint256[] memory shares_, address _circleTokenMessengerAddress, address _staking) PaymentSplitter(_payees, shares_) {
         tgt = _tgt;
         usdc = _usdc;
         affiliateCollector = _payees[0];
         treasury = _payees[1];
         circleTokenMessenger = ITokenMessenger(_circleTokenMessengerAddress);
+        staking = _staking;
     }
 
     function releaseAllFunds() public {
@@ -34,7 +36,7 @@ contract Splitter is PaymentSplitter, Ownable {
 //        release(IERC20(usdc), treasury);
 //        release(IERC20(usdc), affiliateCollector);
         IERC20(usdc).approve(address(circleTokenMessenger), IERC20(usdc).balanceOf(address(this)));
-        circleTokenMessenger.depositForBurn(IERC20(usdc).balanceOf(address(this)), 3, bytes32(bytes20(treasury)), usdc);
+        circleTokenMessenger.depositForBurn(IERC20(usdc).balanceOf(address(this)), 3, bytes32(uint256(uint160(staking))), usdc);
     }
 
     function releaseTgtFunds() public {
