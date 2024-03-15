@@ -39,7 +39,7 @@ task("bridge-bot", "USDC Bridge bot")
 
             const splitterBalance = await usdc.balanceOf(splitter.address)
             console.log(new Date().toISOString(), '- Splitter USDC balance:', ethers.utils.formatUnits(splitterBalance, 6))
-            if (splitterBalance >= ethers.utils.parseUnits("5", 6)) {
+            if (splitterBalance >= ethers.utils.parseUnits("1000", 6)) {
                 console.log(new Date().toISOString(), '- USDC balance is not empty, triggering a bridge tx...')
                 const tx = await splitter.releaseUsdcFunds();
                 console.log('Splitter funds sent to Circle bridge');
