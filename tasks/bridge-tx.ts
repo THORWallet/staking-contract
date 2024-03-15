@@ -38,7 +38,7 @@ task("bridge-tx", "USDC Bridge bot")
         console.log(new Date().toISOString(), '- Fetching Splitter contract...')
         const splitter = await hre.ethers.getContractAt(Splitter.abi, '0xA7Da9EA0F28A770EFb713c84a2da240C8162B4dc', signer);
 
-        const txHash = '0xc610ff08b7a228e309f937982664d4b769a63c4ce9e732b8ae64ad001c229a6b';
+        const txHash = '0x2a4391feed8984a537b4af0792466bee958b44ea1885cedc2a1147d74a610027';
 
         const receipt = await hre.ethers.provider.getTransactionReceipt(txHash);
         // console.log("Receipt:", receipt);
@@ -92,11 +92,11 @@ task("bridge-tx", "USDC Bridge bot")
 
         // Using the message bytes and signature receive the funds on destination chain and address
         console.log(`Receiving funds on Arbitrum...`);
-        const gasLimit = ethers.utils.hexlify(15000000); // 15,000,000 gas limit
+        const maxFeePerGas = ethers.utils.hexlify(150000000);
         const gasPrice = ethers.utils.parseUnits('0.1', 'gwei'); // 0.1 Gwei gas price on Arbitrum
         const receiveTx = await arbitrumMessageTransmitter.receiveMessage(messageBytes, attestationSignature, {
-            gasLimit: gasLimit,
-            gasPrice: gasPrice
+            maxPriorityFeePerGas: gasPrice,
+            maxFeePerGas: maxFeePerGas,
         });
 
         await receiveTx.wait(1);

@@ -39,7 +39,7 @@ task("bridge-bot", "USDC Bridge bot")
 
             const splitterBalance = await usdc.balanceOf(splitter.address)
             console.log(new Date().toISOString(), '- Splitter USDC balance:', ethers.utils.formatUnits(splitterBalance, 6))
-            if (splitterBalance >= ethers.utils.parseUnits("1000", 6)) {
+            if (splitterBalance >= ethers.utils.parseUnits("5", 6)) {
                 console.log(new Date().toISOString(), '- USDC balance is not empty, triggering a bridge tx...')
                 const tx = await splitter.releaseUsdcFunds();
                 console.log('Splitter funds sent to Circle bridge');
@@ -99,13 +99,14 @@ task("bridge-bot", "USDC Bridge bot")
 
                 const signer2 = wallet.connect(provider);
                 const arbitrumMessageTransmitter = await hre.ethers.getContractAt(MessageTransmitter.abi, '0xC30362313FBBA5cf9163F0bb16a0e01f01A896ca', signer2);
+
                 // Using the message bytes and signature receive the funds on destination chain and address
                 console.log(`Receiving funds on Arbitrum...`);
-                const gasLimit = ethers.utils.hexlify(15000000); // 15,000,000 gas limit
+                const maxFeePerGas = ethers.utils.hexlify(150000000);
                 const gasPrice = ethers.utils.parseUnits('0.1', 'gwei'); // 0.1 Gwei gas price on Arbitrum
                 const receiveTx = await arbitrumMessageTransmitter.receiveMessage(messageBytes, attestationSignature, {
-                    gasLimit: gasLimit,
-                    gasPrice: gasPrice
+                    maxPriorityFeePerGas: gasPrice,
+                    maxFeePerGas: maxFeePerGas,
                 });
 
                 await receiveTx.wait(1);
