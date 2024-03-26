@@ -1,5 +1,6 @@
 /*
     npx hardhat bridge-bot --network avax
+    pm2 start "npx hardhat bridge-bot --network avax" --name bridge-bot
 */
 
 import {task} from "hardhat/config";
@@ -113,7 +114,7 @@ task("bridge-bot", "USDC Bridge bot")
                 console.log("Received funds successfully - txHash:", receiveTx.hash);
             }
 
-            await delay(4 * 60 * 60 * 1000);// 4 hours in milliseconds
+            await delay(60 * 60 * 1000);// 1 hour in milliseconds
         }
 
     });
