@@ -1,12 +1,16 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.7.6;
+pragma solidity 0.8.19;
+pragma abicoder v2;
 
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/math/SafeMathUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/proxy/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/SafeERC20Upgradeable.sol";
+import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import {SafeMathUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
+import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import {IERC20Upgradeable} from  "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import {SafeERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+
+import {ISwapRouter} from  '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
+import {TransferHelper} from '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
 
 /**
  * @title TGT Staking
@@ -26,6 +30,8 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
     struct UserInfo {
         uint256 amount;
         mapping(IERC20Upgradeable => uint256) rewardDebt;
+        address userAddress;
+        bool autoStake;
         /**
          * @notice We do some fancy math here. Basically, any point in time, the amount of TGTs
          * entitled to a user but is pending to be distributed is:
@@ -61,6 +67,7 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
 
     /// @notice The address where deposit fees will be sent
     address public feeCollector;
+
     /// @notice Reentrancy guard
     bool public reentrant;
 
@@ -84,6 +91,12 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
 
     /// @dev Info of each user that stakes TGT
     mapping(address => UserInfo) private userInfo;
+
+    /// @dev list of all the users
+    address[] public users;
+
+    ISwapRouter public constant swapRouter = ISwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);
+    uint24 public constant poolFee = 3000;
 
     /// @notice Emitted when a user deposits TGT
     event Deposit(address indexed user, uint256 amount, uint256 fee);
@@ -152,7 +165,12 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
      * @param _amount The amount of TGT to deposit
      */
     function deposit(uint256 _amount) external nonReentrant {
-        UserInfo storage user = userInfo[_msgSender()];
+        _deposit(_amount, _msgSender());
+    }
+
+    function _deposit(uint256 _amount, address _user) internal {
+        UserInfo storage user = userInfo[_user];
+        users.push(_user);
 
         uint256 _fee = _amount.mul(depositFeePercent).div(DEPOSIT_FEE_PERCENT_PRECISION);
         uint256 _amountMinusFee = _amount.sub(_fee);
@@ -175,18 +193,75 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
                     .div(ACC_REWARD_PER_SHARE_PRECISION)
                     .sub(_previousRewardDebt);
                 if (_pending != 0) {
-                    _safeTokenTransfer(_token, _msgSender(), _pending);
-                    emit ClaimReward(_msgSender(), address(_token), _pending);
+                    _safeTokenTransfer(_token, _user, _pending);
+                    emit ClaimReward(_user, address(_token), _pending);
                 }
             }
         }
 
         internalTgtBalance = internalTgtBalance.add(_amountMinusFee);
 
-        if (_fee > 0) tgt.safeTransferFrom(_msgSender(), feeCollector, _fee);
-        if (_amountMinusFee > 0) tgt.safeTransferFrom(_msgSender(), address(this), _amountMinusFee);
+        if (_fee > 0) tgt.safeTransferFrom(_user, feeCollector, _fee);
+        if (_amountMinusFee > 0) tgt.safeTransferFrom(_user, address(this), _amountMinusFee);
 
-        emit Deposit(_msgSender(), _amountMinusFee, _fee);
+        emit Deposit(_user, _amountMinusFee, _fee);
+    }
+
+    function enableAutoStaking() external {
+        UserInfo storage user = userInfo[_msgSender()];
+        user.autoStake = true;
+    }
+
+    function disableAutoStaking() external {
+        UserInfo storage user = userInfo[_msgSender()];
+        user.autoStake = false;
+    }
+
+    // claims rewards and restakes them for all users that have autoStake enabled
+    function autoStake() external {
+        for (uint256 i = 0; i < users.length; i++) {
+            UserInfo storage user = userInfo[users[i]];
+
+            for (uint256 j = 0; j < rewardTokens.length; j++) {
+                IERC20Upgradeable _token = rewardTokens[j];
+                uint256 _pending = pendingReward(user.userAddress, _token);
+                if (_pending > 0) {
+                    _withdraw(0, user.userAddress);
+                    uint256 swappedAmount = _swapToTgt(_pending, _token);
+                    _deposit(swappedAmount, user.userAddress);
+                }
+            }
+        }
+
+    }
+    /**
+    * @notice Uses uniswap v3 pool to swap from reward token to TGT
+    * @param _amount The amount of reward token to swap
+    * @param _token The address of the reward token
+    */
+    function _swapToTgt(uint256 _amount, IERC20Upgradeable _token) internal returns (uint256){
+        // msg.sender must approve this contract
+
+        // Approve the router to spend reward token.
+        TransferHelper.safeApprove(address(_token), address(swapRouter), _amount);
+
+        // Naively set amountOutMinimum to 0. In production, use an oracle or other data source to choose a safer value for amountOutMinimum.
+        // We also set the sqrtPriceLimitx96 to be 0 to ensure we swap our exact input amount.
+        ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
+            tokenIn: address(_token),
+            tokenOut: address(tgt),
+            fee: poolFee,
+            recipient: address(this),
+            deadline: block.timestamp,
+            amountIn: _amount,
+            amountOutMinimum: 0,
+            sqrtPriceLimitX96: 0
+        });
+
+        // The call to `exactInputSingle` executes the swap.
+        uint256 amountOut = swapRouter.exactInputSingle(params);
+
+        return amountOut;
     }
 
     /**
@@ -262,7 +337,7 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
      * @param _token The address of the token
      * @return `_user`'s pending reward token
      */
-    function pendingReward(address _user, IERC20Upgradeable _token) external view returns (uint256) {
+    function pendingReward(address _user, IERC20Upgradeable _token) public view returns (uint256) {
         require(isRewardToken[_token], "TGTStakingBasic: wrong reward token");
         UserInfo storage user = userInfo[_user];
         uint256 _totalTgt = internalTgtBalance;
@@ -286,8 +361,13 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
      * @param _amount The amount of TGT to withdraw
      */
     function withdraw(uint256 _amount) external nonReentrant {
-        UserInfo storage user = userInfo[_msgSender()];
+        _withdraw(_amount, _msgSender());
+    }
+
+    function _withdraw(uint256 _amount, address _user) internal {
+        UserInfo storage user = userInfo[_user];
         uint256 _previousAmount = user.amount;
+
         require(_amount <= _previousAmount, "TGTStakingBasic: withdraw amount exceeds balance");
         uint256 _newAmount = user.amount.sub(_amount);
         user.amount = _newAmount;
@@ -305,15 +385,15 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
                 user.rewardDebt[_token] = _newAmount.mul(accRewardPerShare[_token]).div(ACC_REWARD_PER_SHARE_PRECISION);
 
                 if (_pending != 0) {
-                    _safeTokenTransfer(_token, _msgSender(), _pending);
+                    _safeTokenTransfer(_token, _user, _pending);
                     emit ClaimReward(_msgSender(), address(_token), _pending);
                 }
             }
         }
 
         internalTgtBalance = internalTgtBalance.sub(_amount);
-        tgt.safeTransfer(_msgSender(), _amount);
-        emit Withdraw(_msgSender(), _amount);
+        tgt.safeTransfer(_user, _amount);
+        emit Withdraw(_user, _amount);
     }
 
     /**
