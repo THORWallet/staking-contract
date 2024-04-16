@@ -25,13 +25,19 @@ module.exports = {
     defaultNetwork: "hardhat",
     networks: {
         hardhat: {
-            mining: {
-                auto: true, // required to be able to run tests correctly
-                interval: 0
-            },
+            // mining: {
+            //     auto: true, // required to be able to run tests correctly
+            //     interval: 0
+            // },
             forking: {
-                url: "https://rpc.tenderly.co/fork/85dc06dc-9fee-40fe-bb74-1947cb8113e8",
+                url: "https://arb-mainnet.g.alchemy.com/v2/VF2ZO1FU-w4MFlUItzLw7BwfTl--gClz",
             },
+            accounts: {
+                mnemonic: process.env.MNEMONIC
+            }
+        },
+        arbitrumFork: {
+            url: "http://127.0.0.1:8545",
             accounts: {
                 mnemonic: process.env.MNEMONIC
             }

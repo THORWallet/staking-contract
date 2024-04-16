@@ -11,6 +11,7 @@ import {SafeERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ER
 
 import {ISwapRouter} from  '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
 import {TransferHelper} from '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
+import "hardhat/console.sol";
 
 /**
  * @title TGT Staking
@@ -97,6 +98,7 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
 
     ISwapRouter public constant swapRouter = ISwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);
     uint24 public constant poolFee = 3000;
+    address public constant WETH = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
 
     /// @notice Emitted when a user deposits TGT
     event Deposit(address indexed user, uint256 amount, uint256 fee);
@@ -171,6 +173,7 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
     function _deposit(uint256 _amount, address _user) internal {
         UserInfo storage user = userInfo[_user];
         users.push(_user);
+        user.userAddress = _user;
 
         uint256 _fee = _amount.mul(depositFeePercent).div(DEPOSIT_FEE_PERCENT_PRECISION);
         uint256 _amountMinusFee = _amount.sub(_fee);
@@ -221,18 +224,20 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
     function autoStake() external {
         for (uint256 i = 0; i < users.length; i++) {
             UserInfo storage user = userInfo[users[i]];
-
-            for (uint256 j = 0; j < rewardTokens.length; j++) {
-                IERC20Upgradeable _token = rewardTokens[j];
-                uint256 _pending = pendingReward(user.userAddress, _token);
-                if (_pending > 0) {
-                    _withdraw(0, user.userAddress);
-                    uint256 swappedAmount = _swapToTgt(_pending, _token);
-                    _deposit(swappedAmount, user.userAddress);
+            console.log("user: %s", user.userAddress);
+            if (user.autoStake == true) {
+                console.log("autoStake: %s", user.autoStake);
+                for (uint256 j = 0; j < rewardTokens.length; j++) {
+                    IERC20Upgradeable _token = rewardTokens[j];
+                    uint256 _pending = pendingReward(user.userAddress, _token);
+                    if (_pending > 0) {
+                        _withdraw(0, user.userAddress);
+                        uint256 swappedAmount = _swapToTgt(_pending, _token);
+                        _deposit(swappedAmount, user.userAddress);
+                    }
                 }
             }
         }
-
     }
     /**
     * @notice Uses uniswap v3 pool to swap from reward token to TGT
@@ -252,14 +257,29 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
             tokenOut: address(tgt),
             fee: poolFee,
             recipient: address(this),
-            deadline: block.timestamp,
+            deadline: block.timestamp + 100,
             amountIn: _amount,
             amountOutMinimum: 0,
             sqrtPriceLimitX96: 0
         });
 
         // The call to `exactInputSingle` executes the swap.
-        uint256 amountOut = swapRouter.exactInputSingle(params);
+//        uint256 amountOut = swapRouter.exactInputSingle(params);
+
+
+        bytes memory path = abi.encodePacked(address(_token), poolFee, WETH, poolFee, address(tgt));
+
+        ISwapRouter.ExactInputParams memory hopParams = ISwapRouter.ExactInputParams({
+            path: path,
+            recipient: address(this),
+            deadline: block.timestamp,
+            amountIn: _amount,
+            amountOutMinimum: 0
+        });
+
+        console.log("test params factory: %s", periphery.factory());
+
+        uint256 amountOut = swapRouter.exactInput(hopParams);
 
         return amountOut;
     }

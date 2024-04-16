@@ -6,10 +6,11 @@ const {loadFixture} = require("@nomicfoundation/hardhat-network-helpers");
 const hre = require("hardhat");
 const {utils} = require("ethers");
 
-describe("TGT Staking", function () {
+describe.only("TGT Staking", function () {
 
     async function deployFixture() {
         const TGTStaking = await ethers.getContractFactory("TGTStaking");
+        const TGTStakingBasic = await ethers.getContractFactory("TGTStakingBasic");
         const TGTFactory = await ethers.getContractFactory("MockTGT");
         const StableJoeStaking = await ethers.getContractFactory("StableJoeStaking");
         const USDC = await ethers.getContractFactory("USDC");
@@ -21,6 +22,7 @@ describe("TGT Staking", function () {
         const carol = signers[3];
         const tgtMaker = signers[4];
         const joe = signers[5];
+        const treasury = signers[6];
 
         const rewardToken = await USDC.deploy();
         const tgt = await TGTFactory.deploy();
@@ -45,6 +47,10 @@ describe("TGT Staking", function () {
             tgt.address
         );
 
+        const tgtStakingBasic = await upgrades.deployProxy(TGTStakingBasic,
+            [tgt.address, rewardToken.address, treasury.address, 0]
+        );
+
         const joeStaking = await upgrades.deployProxy(StableJoeStaking, [rewardToken.address, joe.address, 0],
             {
                 unsafeAllow: ["constructor", "state-variable-immutable"],
@@ -57,6 +63,11 @@ describe("TGT Staking", function () {
         await tgt.connect(bob).approve(tgtStaking.address, utils.parseEther("360000"));
         await tgt.connect(carol).approve(tgtStaking.address, utils.parseEther("100000"));
         await tgt.connect(joe).approve(tgtStaking.address, utils.parseEther("100000"));
+
+        await tgt.connect(alice).approve(tgtStakingBasic.address, utils.parseEther("360000"));
+        await tgt.connect(bob).approve(tgtStakingBasic.address, utils.parseEther("360000"));
+        await tgt.connect(carol).approve(tgtStakingBasic.address, utils.parseEther("100000"));
+        await tgt.connect(joe).approve(tgtStakingBasic.address, utils.parseEther("100000"));
 
         await tgt.connect(alice).approve(joeStaking.address, utils.parseEther("100000"));
         await tgt.connect(bob).approve(joeStaking.address, utils.parseEther("100000"));
@@ -74,7 +85,8 @@ describe("TGT Staking", function () {
             tgtMaker,
             USDC,
             joe,
-            joeStaking
+            joeStaking,
+            tgtStakingBasic
         };
     }
 
@@ -1944,6 +1956,64 @@ describe("TGT Staking", function () {
             ).to.be.lte(await rewardToken.balanceOf(tgtStaking.address));
 
         });
+
+        it.only("Auto staking", async function () {
+
+            const {
+                tgtStakingBasic,
+                tgt,
+                rewardToken,
+                alice,
+                bob,
+                carol,
+                tgtMaker,
+            } = await loadFixture(deployFixture);
+
+            await tgtStakingBasic.connect(alice).deposit(utils.parseEther("100"));
+            await tgtStakingBasic.connect(bob).deposit(utils.parseEther("200"));
+            await rewardToken.connect(tgtMaker).transfer(tgtStakingBasic.address, utils.parseEther("100"));
+            await increase(86400 * 365);
+
+            console.log("Reward USDC pool balance: ", utils.formatEther(await rewardToken.balanceOf(tgtStakingBasic.address)));
+            console.log("Total TGT pool balance: ", utils.formatEther(await tgt.balanceOf(tgtStakingBasic.address)));
+            console.log("--------------------------------------");
+            console.log("Pending USDC reward for Alice: " + utils.formatUnits(await tgtStakingBasic.pendingReward(alice.address, rewardToken.address), 18));
+            console.log("--------------------------------------");
+            console.log("Pending USDC reward for Bob: " + utils.formatUnits(await tgtStakingBasic.pendingReward(bob.address, rewardToken.address), 18));
+
+            console.log("Reward balance of Alice: " + utils.formatEther(await rewardToken.balanceOf(alice.address)));
+            console.log("Reward balance of Bob: " + utils.formatEther(await rewardToken.balanceOf(bob.address)));
+            console.log("--------------------------------------");
+
+            // await tgtStakingBasic.connect(alice).enableAutoStaking();
+            await tgtStakingBasic.connect(bob).enableAutoStaking();
+            await rewardToken.connect(tgtMaker).transfer(tgtStakingBasic.address, utils.parseEther("100"));
+            await tgtStakingBasic.autoStake();
+
+            console.log("Reward USDC pool balance: ", utils.formatEther(await rewardToken.balanceOf(tgtStakingBasic.address)));
+            console.log("Total TGT pool balance: ", utils.formatEther(await tgt.balanceOf(tgtStakingBasic.address)));
+            console.log("--------------------------------------");
+            console.log("Pending USDC reward for Alice: " + utils.formatUnits(await tgtStakingBasic.pendingReward(alice.address, rewardToken.address), 18));
+            console.log("Pending USDC reward for Bob: " + utils.formatUnits(await tgtStakingBasic.pendingReward(bob.address, rewardToken.address), 18));
+
+            console.log("Reward balance of Alice: " + utils.formatEther(await rewardToken.balanceOf(alice.address)));
+            console.log("Reward balance of Bob: " + utils.formatEther(await rewardToken.balanceOf(bob.address)));
+            console.log("--------------------------------------");
+
+            await rewardToken.connect(tgtMaker).transfer(tgtStakingBasic.address, utils.parseEther("100"));
+            await tgtStakingBasic.autoStake();
+
+            console.log("Reward USDC pool balance: ", utils.formatEther(await rewardToken.balanceOf(tgtStakingBasic.address)));
+            console.log("Total TGT pool balance: ", utils.formatEther(await tgt.balanceOf(tgtStakingBasic.address)));
+            console.log("--------------------------------------");
+            console.log("Pending USDC reward for Alice: " + utils.formatUnits(await tgtStakingBasic.pendingReward(alice.address, rewardToken.address), 18));
+            console.log("--------------------------------------");
+            console.log("Pending USDC reward for Bob: " + utils.formatUnits(await tgtStakingBasic.pendingReward(bob.address, rewardToken.address), 18));
+
+            console.log("Reward balance of Alice: " + utils.formatEther(await rewardToken.balanceOf(alice.address)));
+            console.log("Reward balance of Bob: " + utils.formatEther(await rewardToken.balanceOf(bob.address)));
+        });
+
     });
 
     after(async function () {
