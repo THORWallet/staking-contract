@@ -1975,7 +1975,7 @@ describe.only("TGT Staking", function () {
             await increase(86400 * 365);
 
             console.log("Reward USDC pool balance: ", utils.formatEther(await rewardToken.balanceOf(tgtStakingBasic.address)));
-            console.log("Total TGT pool balance: ", utils.formatEther(await tgt.balanceOf(tgtStakingBasic.address)));
+            console.log("Before Total TGT pool balance: ", utils.formatEther(await tgt.balanceOf(tgtStakingBasic.address)));
             console.log("--------------------------------------");
             console.log("Pending USDC reward for Alice: " + utils.formatUnits(await tgtStakingBasic.pendingReward(alice.address, rewardToken.address), 18));
             console.log("--------------------------------------");
@@ -1986,9 +1986,9 @@ describe.only("TGT Staking", function () {
             console.log("--------------------------------------");
 
             await tgtStakingBasic.connect(alice).enableAutoStaking();
-            // await tgtStakingBasic.connect(bob).enableAutoStaking();
-            // await rewardToken.connect(tgtMaker).transfer(tgtStakingBasic.address, utils.parseEther("100"));
-            await tgtStakingBasic.autoStake();
+            await rewardToken.connect(tgtMaker).transfer(tgtStakingBasic.address, utils.parseEther("100"));
+            const tx = await tgtStakingBasic.restakeRewards();
+            tx.wait();
 
             console.log("Reward USDC pool balance: ", utils.formatEther(await rewardToken.balanceOf(tgtStakingBasic.address)));
             console.log("Total TGT pool balance: ", utils.formatEther(await tgt.balanceOf(tgtStakingBasic.address)));

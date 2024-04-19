@@ -50,7 +50,7 @@ async function main() {
 
     console.log("Pending USDC rewards: " + await tgtStaking.pendingReward(deployer.address, usdcAddress));
 
-    await tgtStaking.autoStake();
+    await tgtStaking.restakeRewards();
 
     console.log("Auto staking done")
 

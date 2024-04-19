@@ -222,24 +222,25 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
         user.autoStake = false;
     }
 
-    // claims rewards and restakes them for all users that have autoStake enabled
-    function autoStake() external {
-        for (uint256 i = 0; i < users.length; i++) {
-            UserInfo storage user = userInfo[users[i]];
-            console.log("user: %s", user.userAddress);
-            if (user.autoStake == true) {
-                console.log("autoStake: %s", user.autoStake);
-                for (uint256 j = 0; j < rewardTokens.length; j++) {
-                    IERC20Upgradeable _token = rewardTokens[j];
-                    uint256 _pending = pendingReward(user.userAddress, _token);
-                    if (_pending > 0) {
-                        uint256 swappedAmount = _swapToTgt(_pending, _token);
-                        _deposit(swappedAmount, user.userAddress);
-                    }
+    /**
+    *
+    @notice Swaps reward tokens to TGT and restakes them
+    */
+    function restakeRewards() external {
+        UserInfo storage user = userInfo[_msgSender()];
+        if (user.autoStake == true) {
+            for (uint256 i = 0; i < rewardTokens.length; i++) {
+                IERC20Upgradeable _token = rewardTokens[i];
+                uint256 _pending = pendingReward(user.userAddress, _token);
+                console.log("Pending reward: %s", _pending);
+                if (_pending > 0) {
+                    uint256 swappedAmount = _swapToTgt(_pending, _token);
+                    _deposit(swappedAmount, user.userAddress);
                 }
             }
         }
     }
+
     /**
     * @notice Uses uniswap v3 pool to swap from reward token to TGT
     * @param _amount The amount of reward token to swap
