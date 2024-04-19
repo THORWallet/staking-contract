@@ -11,6 +11,7 @@ import {SafeERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ER
 
 import {ISwapRouter} from  '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
 import {TransferHelper} from '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
+//import {IUniversalRouter} from '@uniswap/universal-router/contracts/interfaces/IUniversalRouter.sol';
 import "hardhat/console.sol";
 
 /**
@@ -97,6 +98,7 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
     address[] public users;
 
     ISwapRouter public constant swapRouter = ISwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);
+//    IUniversalRouter  public constant universalRouter = IUniversalRouter(0x5e325eda8064b456f4781070c0738d849c824258);
     uint24 public constant poolFee = 3000;
     address public constant WETH = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
 
@@ -231,7 +233,6 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
                     IERC20Upgradeable _token = rewardTokens[j];
                     uint256 _pending = pendingReward(user.userAddress, _token);
                     if (_pending > 0) {
-                        _withdraw(0, user.userAddress);
                         uint256 swappedAmount = _swapToTgt(_pending, _token);
                         _deposit(swappedAmount, user.userAddress);
                     }
@@ -248,7 +249,11 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
         // msg.sender must approve this contract
 
         // Approve the router to spend reward token.
-        TransferHelper.safeApprove(address(_token), address(swapRouter), _amount);
+        if (_token.allowance(address(this), address(swapRouter)) < _amount)
+            TransferHelper.safeApprove(address(_token), address(swapRouter), _amount);
+
+        console.log("USDC amount to be swapped: %s", _amount);
+        console.log("Contract balance of USDC token: %s", _token.balanceOf(address(this)));
 
         // Naively set amountOutMinimum to 0. In production, use an oracle or other data source to choose a safer value for amountOutMinimum.
         // We also set the sqrtPriceLimitx96 to be 0 to ensure we swap our exact input amount.
@@ -257,29 +262,28 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
             tokenOut: address(tgt),
             fee: poolFee,
             recipient: address(this),
-            deadline: block.timestamp + 100,
+            deadline: block.timestamp,
             amountIn: _amount,
             amountOutMinimum: 0,
             sqrtPriceLimitX96: 0
         });
 
         // The call to `exactInputSingle` executes the swap.
-//        uint256 amountOut = swapRouter.exactInputSingle(params);
+        uint256 amountOut = swapRouter.exactInputSingle(params);
 
-
-        bytes memory path = abi.encodePacked(address(_token), poolFee, WETH, poolFee, address(tgt));
-
-        ISwapRouter.ExactInputParams memory hopParams = ISwapRouter.ExactInputParams({
-            path: path,
-            recipient: address(this),
-            deadline: block.timestamp,
-            amountIn: _amount,
-            amountOutMinimum: 0
-        });
-
-        console.log("test params factory: %s", periphery.factory());
-
-        uint256 amountOut = swapRouter.exactInput(hopParams);
+//        bytes memory path = abi.encodePacked(address(_token), poolFee, WETH, poolFee, address(tgt));
+//
+//        console.log("amount: %s", _amount);
+//
+//        ISwapRouter.ExactInputParams memory hopParams = ISwapRouter.ExactInputParams({
+//            path: path,
+//            recipient: address(this),
+//            deadline: block.timestamp,
+//            amountIn: _amount,
+//            amountOutMinimum: 0
+//        });
+//
+//        uint256 amountOut = swapRouter.exactInput(hopParams);
 
         return amountOut;
     }

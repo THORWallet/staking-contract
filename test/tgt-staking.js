@@ -1985,9 +1985,9 @@ describe.only("TGT Staking", function () {
             console.log("Reward balance of Bob: " + utils.formatEther(await rewardToken.balanceOf(bob.address)));
             console.log("--------------------------------------");
 
-            // await tgtStakingBasic.connect(alice).enableAutoStaking();
-            await tgtStakingBasic.connect(bob).enableAutoStaking();
-            await rewardToken.connect(tgtMaker).transfer(tgtStakingBasic.address, utils.parseEther("100"));
+            await tgtStakingBasic.connect(alice).enableAutoStaking();
+            // await tgtStakingBasic.connect(bob).enableAutoStaking();
+            // await rewardToken.connect(tgtMaker).transfer(tgtStakingBasic.address, utils.parseEther("100"));
             await tgtStakingBasic.autoStake();
 
             console.log("Reward USDC pool balance: ", utils.formatEther(await rewardToken.balanceOf(tgtStakingBasic.address)));
@@ -2000,18 +2000,18 @@ describe.only("TGT Staking", function () {
             console.log("Reward balance of Bob: " + utils.formatEther(await rewardToken.balanceOf(bob.address)));
             console.log("--------------------------------------");
 
-            await rewardToken.connect(tgtMaker).transfer(tgtStakingBasic.address, utils.parseEther("100"));
-            await tgtStakingBasic.autoStake();
+            // await rewardToken.connect(tgtMaker).transfer(tgtStakingBasic.address, utils.parseEther("100"));
+            // await tgtStakingBasic.autoStake();
 
-            console.log("Reward USDC pool balance: ", utils.formatEther(await rewardToken.balanceOf(tgtStakingBasic.address)));
-            console.log("Total TGT pool balance: ", utils.formatEther(await tgt.balanceOf(tgtStakingBasic.address)));
-            console.log("--------------------------------------");
-            console.log("Pending USDC reward for Alice: " + utils.formatUnits(await tgtStakingBasic.pendingReward(alice.address, rewardToken.address), 18));
-            console.log("--------------------------------------");
-            console.log("Pending USDC reward for Bob: " + utils.formatUnits(await tgtStakingBasic.pendingReward(bob.address, rewardToken.address), 18));
-
-            console.log("Reward balance of Alice: " + utils.formatEther(await rewardToken.balanceOf(alice.address)));
-            console.log("Reward balance of Bob: " + utils.formatEther(await rewardToken.balanceOf(bob.address)));
+            // console.log("Reward USDC pool balance: ", utils.formatEther(await rewardToken.balanceOf(tgtStakingBasic.address)));
+            // console.log("Total TGT pool balance: ", utils.formatEther(await tgt.balanceOf(tgtStakingBasic.address)));
+            // console.log("--------------------------------------");
+            // console.log("Pending USDC reward for Alice: " + utils.formatUnits(await tgtStakingBasic.pendingReward(alice.address, rewardToken.address), 18));
+            // console.log("--------------------------------------");
+            // console.log("Pending USDC reward for Bob: " + utils.formatUnits(await tgtStakingBasic.pendingReward(bob.address, rewardToken.address), 18));
+            //
+            // console.log("Reward balance of Alice: " + utils.formatEther(await rewardToken.balanceOf(alice.address)));
+            // console.log("Reward balance of Bob: " + utils.formatEther(await rewardToken.balanceOf(bob.address)));
         });
 
     });
