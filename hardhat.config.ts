@@ -7,6 +7,7 @@ require("hardhat-gas-reporter");
 require('catapulta/hardhat');
 require('@nomicfoundation/hardhat-verify');
 require('@openzeppelin/hardhat-upgrades');
+require("@nomicfoundation/hardhat-foundry");
 require('dotenv').config();
 import {task} from "hardhat/config";
 import "./tasks/bridge-bot";
