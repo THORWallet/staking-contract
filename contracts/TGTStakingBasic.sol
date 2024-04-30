@@ -32,8 +32,6 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
     struct UserInfo {
         uint256 amount;
         mapping(IERC20Upgradeable => uint256) rewardDebt;
-        address userAddress;
-        bool autoStake;
         /**
          * @notice We do some fancy math here. Basically, any point in time, the amount of TGTs
          * entitled to a user but is pending to be distributed is:
@@ -175,7 +173,6 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
     function _deposit(uint256 _amount, address _user) internal {
         UserInfo storage user = userInfo[_user];
         users.push(_user);
-        user.userAddress = _user;
 
         uint256 _fee = _amount.mul(depositFeePercent).div(DEPOSIT_FEE_PERCENT_PRECISION);
         uint256 _amountMinusFee = _amount.sub(_fee);
@@ -212,31 +209,20 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
         emit Deposit(_user, _amountMinusFee, _fee);
     }
 
-    function enableAutoStaking() external {
-        UserInfo storage user = userInfo[_msgSender()];
-        user.autoStake = true;
-    }
-
-    function disableAutoStaking() external {
-        UserInfo storage user = userInfo[_msgSender()];
-        user.autoStake = false;
-    }
-
     /**
     *
     @notice Swaps reward tokens to TGT and restakes them
     */
     function restakeRewards() external {
-        UserInfo storage user = userInfo[_msgSender()];
-        if (user.autoStake == true) {
-            for (uint256 i = 0; i < rewardTokens.length; i++) {
-                IERC20Upgradeable _token = rewardTokens[i];
-                uint256 _pending = pendingReward(user.userAddress, _token);
-                console.log("Pending reward: %s", _pending);
-                if (_pending > 0) {
-                    uint256 swappedAmount = _swapToTgt(_pending, _token);
-                    _deposit(swappedAmount, user.userAddress);
-                }
+        for (uint256 i = 0; i < rewardTokens.length; i++) {
+            IERC20Upgradeable _token = rewardTokens[i];
+            address userAddress = _msgSender();
+            uint256 _pending = pendingReward(userAddress, _token);
+            console.log("Pending reward: %s", _pending);
+            if (_pending > 0) {
+                uint256 swappedAmount = _swapToTgt(_pending, _token);
+                console.log("! ! !Swapped amount: %s", swappedAmount);
+                _deposit(swappedAmount, userAddress);
             }
         }
     }

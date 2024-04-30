@@ -30,14 +30,14 @@ module.exports = {
             //     interval: 0
             // },
             forking: {
-                url: "https://arb-mainnet.g.alchemy.com/v2/VF2ZO1FU-w4MFlUItzLw7BwfTl--gClz",
+                url: "https://virtual.arbitrum.rpc.tenderly.co/982c11a2-032b-48ff-ba5e-af39eb573926",
             },
             accounts: {
                 mnemonic: process.env.MNEMONIC
             }
         },
         arbitrumFork: {
-            url: "http://127.0.0.1:8545",
+            url: "http://127.0.0.1:8545/",
             accounts: {
                 mnemonic: process.env.MNEMONIC
             }
@@ -81,6 +81,9 @@ module.exports = {
             maxFeePerGas: 2000000000,
             maxPriorityFeePerGas: 1500000000
         },
+        virtualArbitrumOne: {
+            url: "https://virtual.arbitrum.rpc.tenderly.co/8be1fabb-2b4a-4aee-b909-da3620484a26",
+        },
     },
     solidity: {
         compilers: [{
@@ -123,8 +126,12 @@ module.exports = {
         src: "./contracts",
         coinmarketcap: process.env.COINMARKETCAP_API_KEY
     },
-
     etherscan: {
         apiKey: process.env.ETHERSCAN_API_KEY
-    }
+    },
+    tenderly: {
+        // https://docs.tenderly.co/account/projects/account-project-slug
+        project: "tgt staking",
+        username: "stevyhacker",
+    },
 };

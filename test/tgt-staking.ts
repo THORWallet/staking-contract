@@ -1978,14 +1978,12 @@ describe.only("TGT Staking", function () {
             console.log("Before Total TGT pool balance: ", utils.formatEther(await tgt.balanceOf(tgtStakingBasic.address)));
             console.log("--------------------------------------");
             console.log("Pending USDC reward for Alice: " + utils.formatUnits(await tgtStakingBasic.pendingReward(alice.address, rewardToken.address), 18));
-            console.log("--------------------------------------");
             console.log("Pending USDC reward for Bob: " + utils.formatUnits(await tgtStakingBasic.pendingReward(bob.address, rewardToken.address), 18));
 
             console.log("Reward balance of Alice: " + utils.formatEther(await rewardToken.balanceOf(alice.address)));
             console.log("Reward balance of Bob: " + utils.formatEther(await rewardToken.balanceOf(bob.address)));
             console.log("--------------------------------------");
 
-            await tgtStakingBasic.connect(alice).enableAutoStaking();
             await rewardToken.connect(tgtMaker).transfer(tgtStakingBasic.address, utils.parseEther("100"));
             const tx = await tgtStakingBasic.restakeRewards();
             tx.wait();
@@ -2016,12 +2014,12 @@ describe.only("TGT Staking", function () {
 
     });
 
-    after(async function () {
-        await network.provider.request({
-            method: "hardhat_reset",
-            params: [],
-        });
-    });
+    // after(async function () {
+    //     await network.provider.request({
+    //         method: "hardhat_reset",
+    //         params: [],
+    //     });
+    // });
 })
 ;
 
