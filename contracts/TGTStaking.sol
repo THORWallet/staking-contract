@@ -3,9 +3,9 @@
 pragma solidity ^0.8.22;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 //import "hardhat/console.sol";
 
 /**
@@ -109,7 +109,7 @@ contract TGTStaking is Ownable, ReentrancyGuard {
     constructor(
         IERC20 _rewardToken,
         IERC20 _tgt
-    ) {
+    ) Ownable(_msgSender()) {
         require(address(_rewardToken) != address(0), "TGTStaking: reward token can't be address(0)");
         require(address(_tgt) != address(0), "TGTStaking: tgt can't be address(0)");
 

@@ -1,12 +1,12 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity 0.8.19;
+pragma solidity ^0.8.19;
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "./libraries/SafeMathUpgradeable.sol";
+import "./libraries/IERC20Upgradeable.sol";
+import "./libraries/SafeERC20Upgradeable.sol";
 
 /**
  * @title Stable JOE Staking
@@ -141,7 +141,7 @@ contract StableJoeStaking is Initializable, OwnableUpgradeable {
         address _feeCollector,
         uint256 _depositFeePercent
     ) external initializer {
-        __Ownable_init();
+        __Ownable_init(_msgSender());
         require(address(_rewardToken) != address(0), "StableJoeStaking: reward token can't be address(0)");
         require(_feeCollector != address(0), "StableJoeStaking: fee collector can't be address(0)");
         require(_depositFeePercent <= 5e17, "StableJoeStaking: max deposit fee can't be greater than 50%");

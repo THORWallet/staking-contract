@@ -5,6 +5,7 @@ import {Test, console} from "forge-std/Test.sol";
 import {TGTStakingBasic} from "../contracts/TGTStakingBasic.sol";
 import {USDC} from "../contracts/mocks/USDC.sol";
 import {MockTGT} from "../contracts/mocks/MockTGT.sol";
+import {Upgrades} from "openzeppelin-foundry-upgrades/Upgrades.sol";
 
 contract StakingTest is Test {
     TGTStakingBasic public tgtStaking;
@@ -16,9 +17,10 @@ contract StakingTest is Test {
         rewardToken = new USDC();
         tgt = new MockTGT();
 
-        tgtStaking = new TGTStakingBasic(
-            rewardToken,
-            tgt
+        tgtStaking = Upgrades.deployTransparentProxy(
+            "TGTStakingBasic.sol",
+            msg.sender,
+            abi.encodeCall(TGTStakingBasic.initialize, (rewardToken, tgt))
         );
 
     }

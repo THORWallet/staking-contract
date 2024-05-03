@@ -2,9 +2,9 @@
 pragma solidity ^0.8.19;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/finance/PaymentSplitter.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "./interfaces/ITokenMessenger.sol";
+import "./libraries/PaymentSplitter.sol";
 //import "hardhat/console.sol";
 
 contract Splitter is PaymentSplitter, Ownable {
@@ -18,7 +18,7 @@ contract Splitter is PaymentSplitter, Ownable {
 
     ITokenMessenger public circleTokenMessenger;
 
-    constructor(address _tgt, address _usdc, address[] memory _payees, uint256[] memory shares_, address _circleTokenMessengerAddress, address _staking) PaymentSplitter(_payees, shares_) {
+    constructor(address _tgt, address _usdc, address[] memory _payees, uint256[] memory shares_, address _circleTokenMessengerAddress, address _staking) PaymentSplitter(_payees, shares_) Ownable(_msgSender()){
         tgt = _tgt;
         usdc = _usdc;
         affiliateCollector = _payees[0];

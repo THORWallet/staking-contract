@@ -4,14 +4,17 @@ pragma solidity ^0.8.19;
 pragma abicoder v2;
 
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
-import {SafeMathUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/math/SafeMathUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-import {IERC20Upgradeable} from  "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import {SafeERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+//import {IERC20Upgradeable} from  "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
 import {ISwapRouter} from  '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
 import {TransferHelper} from '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
 //import {IUniversalRouter} from '@uniswap/universal-router/contracts/interfaces/IUniversalRouter.sol';
+import {SafeMathUpgradeable} from "./libraries/SafeMathUpgradeable.sol";
+import {SafeERC20Upgradeable} from "./libraries/SafeERC20Upgradeable.sol";
+import {IERC20Upgradeable} from "./libraries/IERC20Upgradeable.sol";
+
+
 import "hardhat/console.sol";
 
 /**
@@ -148,7 +151,7 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
         address _feeCollector,
         uint256 _depositFeePercent
     ) external initializer {
-        __Ownable_init();
+        __Ownable_init(_msgSender());
         require(address(_tgt) != address(0), "TGTStakingBasic: tgt can't be address(0)");
         require(address(_rewardToken) != address(0), "TGTStakingBasic: reward token can't be address(0)");
         require(_feeCollector != address(0), "TGTStakingBasic: fee collector can't be address(0)");
