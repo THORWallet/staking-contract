@@ -22,7 +22,7 @@ task("bridge-bot", "USDC Bridge bot")
         const wallet = ethers.Wallet.fromMnemonic(process.env.MNEMONIC);
         // @ts-ignore
         const signers: SignerWithAddress[] = await hre.ethers.getSigners();
-        let signer = signers[0];
+        let signer = signers[1];
         console.log("Using signer: ", signer.address)
 
         const Splitter = require('../artifacts/contracts/Splitter.sol/Splitter.json');
