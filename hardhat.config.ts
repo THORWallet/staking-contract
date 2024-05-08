@@ -1,6 +1,9 @@
 /**
  * @type import('hardhat/config').HardhatUserConfig
  */
+import * as dotenv from "dotenv";
+
+dotenv.config();
 
 require("@nomiclabs/hardhat-waffle");
 require("hardhat-gas-reporter");
@@ -8,7 +11,6 @@ require('catapulta/hardhat');
 require('@nomicfoundation/hardhat-verify');
 require('@openzeppelin/hardhat-upgrades');
 require("@nomicfoundation/hardhat-foundry");
-require('dotenv').config();
 import {task} from "hardhat/config";
 import "./tasks/bridge-bot";
 import "./tasks/bridge-tx";
@@ -30,9 +32,15 @@ module.exports = {
             //     auto: true, // required to be able to run tests correctly
             //     interval: 0
             // },
-            forking: {
-                url: "https://virtual.arbitrum.rpc.tenderly.co/982c11a2-032b-48ff-ba5e-af39eb573926",
-            },
+            // forking: {
+            //     url: "https://virtual.arbitrum.rpc.tenderly.co/982c11a2-032b-48ff-ba5e-af39eb573926",
+            // },
+            // forking: {
+            // url: "https://avalanche-mainnet.infura.io/v3/" + process.env.INFURA_API_KEY,
+            // url: "https://api.avax.network/ext/bc/C/rpc",
+            // blockNumber: 45133520,
+            // enabled: true,
+            // },
             accounts: {
                 mnemonic: process.env.MNEMONIC
             }
@@ -72,6 +80,16 @@ module.exports = {
             },
             gasPrice: 225000000000,
             chainId: 43114,
+        },
+        avaxFork: {
+            url: "https://virtual.avalanche.rpc.tenderly.co/b1b9190a-78ab-490d-bc68-612b8f12ffd2",
+            //     forking: {
+            //         url: "https://avalanche-mainnet.infura.io/v3/" + process.env.INFURA_API_KEY,
+            //         blockNumber: 45133520,
+            //},
+            accounts: {
+                mnemonic: process.env.MNEMONIC
+            }
         },
         arbitrum: {
             url: "https://arb1.arbitrum.io/rpc",
