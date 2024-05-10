@@ -14,8 +14,8 @@ import {SafeMathUpgradeable} from "./libraries/SafeMathUpgradeable.sol";
 import {SafeERC20Upgradeable} from "./libraries/SafeERC20Upgradeable.sol";
 import {IERC20Upgradeable} from "./libraries/IERC20Upgradeable.sol";
 
-
-import "hardhat/console.sol";
+//import "hardhat/console.sol";
+import "forge-std/console.sol";
 
 /**
  * @title TGT Staking
@@ -100,7 +100,7 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
 
     ISwapRouter public constant swapRouter = ISwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);
 //    IUniversalRouter  public constant universalRouter = IUniversalRouter(0x5e325eda8064b456f4781070c0738d849c824258);
-    uint24 public constant poolFee = 3000;
+    uint24 public constant poolFee = 500;
     address public constant WETH = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
 
     /// @notice Emitted when a user deposits TGT
@@ -170,10 +170,10 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
      * @param _amount The amount of TGT to deposit
      */
     function deposit(uint256 _amount) external nonReentrant {
-        _deposit(_amount, _msgSender());
+        _deposit(_amount, _msgSender(), true);
     }
 
-    function _deposit(uint256 _amount, address _user) internal {
+    function _deposit(uint256 _amount, address _user, bool transferRequired) internal {
         UserInfo storage user = userInfo[_user];
         users.push(_user);
 
@@ -206,8 +206,10 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
 
         internalTgtBalance = internalTgtBalance.add(_amountMinusFee);
 
-        if (_fee > 0) tgt.safeTransferFrom(_user, feeCollector, _fee);
-        if (_amountMinusFee > 0) tgt.safeTransferFrom(_user, address(this), _amountMinusFee);
+        if (transferRequired) {
+            if (_fee > 0) tgt.safeTransferFrom(_user, feeCollector, _fee);
+            if (_amountMinusFee > 0) tgt.safeTransferFrom(_user, address(this), _amountMinusFee);
+        }
 
         emit Deposit(_user, _amountMinusFee, _fee);
     }
@@ -225,7 +227,7 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
             if (_pending > 0) {
                 uint256 swappedAmount = _swapToTgt(_pending, _token);
                 console.log("! ! !Swapped amount: %s", swappedAmount);
-                _deposit(swappedAmount, userAddress);
+                _deposit(swappedAmount, userAddress, false);
             }
         }
     }
@@ -238,7 +240,7 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
     function _swapToTgt(uint256 _amount, IERC20Upgradeable _token) internal returns (uint256){
         // msg.sender must approve this contract
 
-        // Approve the router to spend reward token.
+//         Approve the router to spend reward token.
         if (_token.allowance(address(this), address(swapRouter)) < _amount)
             TransferHelper.safeApprove(address(_token), address(swapRouter), _amount);
 

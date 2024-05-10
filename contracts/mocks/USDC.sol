@@ -8,8 +8,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 contract USDC is ERC20, ERC20Burnable, Ownable {
     constructor() ERC20("USDC", "USDC") Ownable(_msgSender()) {}
 
-    function mint(address to, uint256 amount) public onlyOwner {
-        _mint(to, amount);
+    function mint(address _to, uint256 _amount) public onlyOwner {
+        _mint(_to, _amount);
     }
 
     function decimals() public view virtual override returns (uint8) {
