@@ -249,33 +249,33 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
 
         // Naively set amountOutMinimum to 0. In production, use an oracle or other data source to choose a safer value for amountOutMinimum.
         // We also set the sqrtPriceLimitx96 to be 0 to ensure we swap our exact input amount.
-        ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
-            tokenIn: address(_token),
-            tokenOut: address(tgt),
-            fee: poolFee,
-            recipient: address(this),
-            deadline: block.timestamp,
-            amountIn: _amount,
-            amountOutMinimum: 0,
-            sqrtPriceLimitX96: 0
-        });
-
-        // The call to `exactInputSingle` executes the swap.
-        uint256 amountOut = swapRouter.exactInputSingle(params);
-
-//        bytes memory path = abi.encodePacked(address(_token), poolFee, WETH, poolFee, address(tgt));
-//
-//        console.log("amount: %s", _amount);
-//
-//        ISwapRouter.ExactInputParams memory hopParams = ISwapRouter.ExactInputParams({
-//            path: path,
+//        ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
+//            tokenIn: address(_token),
+//            tokenOut: address(tgt),
+//            fee: poolFee,
 //            recipient: address(this),
 //            deadline: block.timestamp,
 //            amountIn: _amount,
-//            amountOutMinimum: 0
+//            amountOutMinimum: 0,
+//            sqrtPriceLimitX96: 0
 //        });
-//
-//        uint256 amountOut = swapRouter.exactInput(hopParams);
+
+        // The call to `exactInputSingle` executes the swap.
+//        uint256 amountOut = swapRouter.exactInputSingle(params);
+
+        bytes memory path = abi.encodePacked(address(_token), poolFee, WETH, poolFee, address(tgt));
+
+        console.log("amount: %s", _amount);
+
+        ISwapRouter.ExactInputParams memory hopParams = ISwapRouter.ExactInputParams({
+            path: path,
+            recipient: address(this),
+            deadline: block.timestamp,
+            amountIn: _amount,
+            amountOutMinimum: 0
+        });
+
+        uint256 amountOut = swapRouter.exactInput(hopParams);
 
         return amountOut;
     }
