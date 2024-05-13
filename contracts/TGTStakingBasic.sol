@@ -5,17 +5,16 @@ pragma abicoder v2;
 
 import {OwnableUpgradeable} from "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import {Initializable} from "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
-//import {IERC20Upgradeable} from  "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
 import {ISwapRouter} from  '@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol';
 import {TransferHelper} from '@uniswap/v3-periphery/contracts/libraries/TransferHelper.sol';
-//import {IUniversalRouter} from '@uniswap/universal-router/contracts/interfaces/IUniversalRouter.sol';
+
 import {SafeMathUpgradeable} from "./libraries/SafeMathUpgradeable.sol";
 import {SafeERC20Upgradeable} from "./libraries/SafeERC20Upgradeable.sol";
 import {IERC20Upgradeable} from "./libraries/IERC20Upgradeable.sol";
 
 //import "hardhat/console.sol";
-import "forge-std/console.sol";
+//import "forge-std/console.sol";
 
 /**
  * @title TGT Staking
@@ -223,10 +222,10 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
             IERC20Upgradeable _token = rewardTokens[i];
             address userAddress = _msgSender();
             uint256 _pending = pendingReward(userAddress, _token);
-            console.log("Pending reward: %s", _pending);
+//            console.log("Pending reward: %s", _pending);
             if (_pending > 0) {
                 uint256 swappedAmount = _swapToTgt(_pending, _token);
-                console.log("! ! !Swapped amount: %s", swappedAmount);
+//                console.log("! ! !Swapped amount: %s", swappedAmount);
                 _deposit(swappedAmount, userAddress, false);
             }
         }
@@ -244,28 +243,11 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
         if (_token.allowance(address(this), address(swapRouter)) < _amount)
             TransferHelper.safeApprove(address(_token), address(swapRouter), _amount);
 
-        console.log("USDC amount to be swapped: %s", _amount);
-        console.log("Contract balance of USDC token: %s", _token.balanceOf(address(this)));
-
-        // Naively set amountOutMinimum to 0. In production, use an oracle or other data source to choose a safer value for amountOutMinimum.
-        // We also set the sqrtPriceLimitx96 to be 0 to ensure we swap our exact input amount.
-//        ISwapRouter.ExactInputSingleParams memory params = ISwapRouter.ExactInputSingleParams({
-//            tokenIn: address(_token),
-//            tokenOut: address(tgt),
-//            fee: poolFee,
-//            recipient: address(this),
-//            deadline: block.timestamp,
-//            amountIn: _amount,
-//            amountOutMinimum: 0,
-//            sqrtPriceLimitX96: 0
-//        });
-
-        // The call to `exactInputSingle` executes the swap.
-//        uint256 amountOut = swapRouter.exactInputSingle(params);
+//        console.log("USDC amount to be swapped: %s", _amount);
+//        console.log("Contract balance of USDC token: %s", _token.balanceOf(address(this)));
 
         bytes memory path = abi.encodePacked(address(_token), poolFee, WETH, poolFee, address(tgt));
-
-        console.log("amount: %s", _amount);
+//        console.log("amount: %s", _amount);
 
         ISwapRouter.ExactInputParams memory hopParams = ISwapRouter.ExactInputParams({
             path: path,
