@@ -33,7 +33,7 @@ module.exports = {
             //     interval: 0
             // },
             // forking: {
-            //     url: "https://virtual.arbitrum.rpc.tenderly.co/982c11a2-032b-48ff-ba5e-af39eb573926",
+            //     url: "https://virtual.arbitrum.rpc.tenderly.co/ + process.env.TENDERLY_VIRTUAL_RPC",
             // },
             // forking: {
             // url: "https://avalanche-mainnet.infura.io/v3/" + process.env.INFURA_API_KEY,
@@ -82,7 +82,7 @@ module.exports = {
             chainId: 43114,
         },
         avaxFork: {
-            url: "https://virtual.avalanche.rpc.tenderly.co/b1b9190a-78ab-490d-bc68-612b8f12ffd2",
+            url: "https://virtual.avalanche.rpc.tenderly.co/" + process.env.TENDERLY_VIRTUAL_RPC_AVALANCHE,
             //     forking: {
             //         url: "https://avalanche-mainnet.infura.io/v3/" + process.env.INFURA_API_KEY,
             //         blockNumber: 45133520,
@@ -101,7 +101,7 @@ module.exports = {
             maxPriorityFeePerGas: 1500000000
         },
         virtualArbitrumOne: {
-            url: "https://virtual.arbitrum.rpc.tenderly.co/8be1fabb-2b4a-4aee-b909-da3620484a26",
+                url: "https://virtual.arbitrum.rpc.tenderly.co/" + process.env.TENDERLY_VIRTUAL_RPC,
         },
     },
     solidity: {

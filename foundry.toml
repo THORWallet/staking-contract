@@ -7,6 +7,7 @@ cache_path = 'cache_forge'
 ast = true
 build_info = true
 extra_output = ["storageLayout"]
+sender = "0xA0FCc0Ef2E8624797Ff20c38725748024bca67A3"
 
 [etherscan]
 unknown_chain = { key = "i1vWh7N0eAiw0MjhwYjjBQ3JqhikqeHm", chain = 73571, url = "https://virtual.arbitrum.rpc.tenderly.co/2f092f27-5b6d-42a4-96b5-76b7afba9372/verify/etherscan" }
