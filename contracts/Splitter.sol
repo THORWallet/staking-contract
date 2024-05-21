@@ -33,19 +33,37 @@ contract Splitter is PaymentSplitter, Ownable {
     }
 
     function releaseUsdcFunds() public {
-//        release(IERC20(usdc), treasury);
-//        release(IERC20(usdc), affiliateCollector);
         IERC20(usdc).approve(address(circleTokenMessenger), IERC20(usdc).balanceOf(address(this)));
-        circleTokenMessenger.depositForBurn(IERC20(usdc).balanceOf(address(this)), 3, bytes32(uint256(uint160(staking))), usdc);
+        uint256 totalAmount = IERC20(usdc).balanceOf(address(this));
+        uint32 destinationDomainArbitrum = 3;
+
+        uint256 amountForStaking = (totalAmount * _shares[staking]) / _totalShares;
+        uint256 amountForTreasury = (totalAmount * _shares[treasury]) / _totalShares;
+
+        circleTokenMessenger.depositForBurn(amountForStaking, destinationDomainArbitrum, bytes32(uint256(uint160(staking))), usdc);
+        circleTokenMessenger.depositForBurn(amountForTreasury, destinationDomainArbitrum, bytes32(uint256(uint160(treasury))), usdc);
+
+        emit PaymentReleased(staking, amountForStaking);
+        emit PaymentReleased(treasury, amountForTreasury);
     }
 
     function releaseTgtFunds() public {
-        release(IERC20(tgt), treasury);
-        release(IERC20(tgt), affiliateCollector);
+        IERC20(tgt).approve(address(circleTokenMessenger), IERC20(tgt).balanceOf(address(this)));
+        uint256 totalAmount = IERC20(tgt).balanceOf(address(this));
+        uint32 destinationDomainArbitrum = 3;
+
+        uint256 amountForStaking = (totalAmount * _shares[staking]) / _totalShares;
+        uint256 amountForTreasury = (totalAmount * _shares[treasury]) / _totalShares;
+
+        circleTokenMessenger.depositForBurn(amountForStaking, destinationDomainArbitrum, bytes32(uint256(uint160(staking))), tgt);
+        circleTokenMessenger.depositForBurn(amountForTreasury, destinationDomainArbitrum, bytes32(uint256(uint160(treasury))), tgt);
+
+        emit PaymentReleased(staking, amountForStaking);
+        emit PaymentReleased(treasury, amountForTreasury);
     }
 
-    function setAffiliateCollector(address _affiliateCollector) public onlyOwner {
-        affiliateCollector = _affiliateCollector;
+    function setStaking(address _staking) public onlyOwner {
+        staking = _staking;
     }
 
     function setTreasury(address _treasury) public onlyOwner {
