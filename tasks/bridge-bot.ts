@@ -84,7 +84,7 @@ task("bridge-bot", "USDC Bridge bot")
             // Used only for testing with virtual testnet
             // const snapshotId = await hre.network.provider.send("evm_snapshot");
 
-            if (splitterBalance >= 1000000000) {
+            if (splitterBalance >= 2000000000) {
                 console.log(new Date().toISOString(), '- USDC balance is not empty, triggering a bridge tx...')
                 const tx = await splitter.releaseUsdcFunds();
                 console.log('Splitter funds sent to Circle bridge');
