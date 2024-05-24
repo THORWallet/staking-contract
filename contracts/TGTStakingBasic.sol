@@ -94,9 +94,6 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
     /// @dev Info of each user that stakes TGT
     mapping(address => UserInfo) private userInfo;
 
-    /// @dev list of all the users
-    address[] public users;
-
     ISwapRouter public constant swapRouter = ISwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);
 //    IUniversalRouter  public constant universalRouter = IUniversalRouter(0x5e325eda8064b456f4781070c0738d849c824258);
     uint24 public constant poolFee = 500;
@@ -174,7 +171,6 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
 
     function _deposit(uint256 _amount, address _user, bool transferRequired) internal {
         UserInfo storage user = userInfo[_user];
-        users.push(_user);
 
         uint256 _fee = _amount.mul(depositFeePercent).div(DEPOSIT_FEE_PERCENT_PRECISION);
         uint256 _amountMinusFee = _amount.sub(_fee);
@@ -223,7 +219,16 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
             address userAddress = _msgSender();
             uint256 _pending = pendingReward(userAddress, _token);
             if (_pending > 0) {
+
                 uint256 swappedAmount = _swapToTgt(_pending, _token);
+
+                //updates swapped pending reward to users reward debt to prevent double claiming
+                _updateReward(_token);
+
+                UserInfo storage user = userInfo[userAddress];
+                user.rewardDebt[_token] = user.amount.mul(accRewardPerShare[_token]).div(ACC_REWARD_PER_SHARE_PRECISION);
+
+                //restakes the swapped TGT
                 _deposit(swappedAmount, userAddress, false);
             }
         }

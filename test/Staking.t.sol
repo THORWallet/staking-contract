@@ -16,6 +16,7 @@ contract StakingTest is Test {
     address stakingProxy;
     uint pk = vm.envUint("ARBITRUM_PRIVATE_KEY");
     address signer = vm.addr(pk);
+    address secondSigner = vm.addr(pk + 1);
 
     function setUp() public {
 
@@ -79,18 +80,70 @@ contract StakingTest is Test {
         tgt.approve(address(tgtStaking), 1e18);
         tgtStaking.deposit(1e18);
 
+        console.log("Sending 1 USDC tokens for rewards");
+        usdc.transfer(address(tgtStaking), 1e6);
+
         (uint256 userBalanceBefore,) = tgtStaking.getUserInfo(signer, IERC20Upgradeable(address(usdc)));
         console.log("Deposited TGT balance before restaking: %s", userBalanceBefore);
 
-        console.log("Minting USDC tokens");
-        usdc.transfer(address(tgtStaking), 1e6);
+        console.log("USDC balance of user before restaking: %s", usdc.balanceOf(signer));
+
+        uint256 usdcBalanceBefore = usdc.balanceOf(signer);
         tgtStaking.restakeRewards();
 
         (uint256 userBalanceAfter,) = tgtStaking.getUserInfo(signer, IERC20Upgradeable(address(usdc)));
         console.log("Deposited TGT balance after restaking: %s", userBalanceAfter);
 
+        console.log("USDC balance of user after restaking: %s", usdc.balanceOf(signer));
+
         //User balance should increase after restaking
         assert(userBalanceAfter > userBalanceBefore);
+        assert(usdc.balanceOf(signer) == usdcBalanceBefore);
+        assert(tgtStaking.pendingReward(signer, IERC20Upgradeable(address(usdc))) == 0);
+        vm.stopPrank();
+    }
+
+    function test_AutoRestakingMultipleUsers() public {
+        vm.startPrank(signer);
+        tgt.approve(address(tgtStaking), 1e18);
+        tgtStaking.deposit(1e18);
+        vm.stopPrank();
+
+        console.log("Second signer used: %s", address(secondSigner));
+        //Second signer needs to be funded with 1 TGT
+
+        vm.startPrank(secondSigner);
+        tgt.approve(address(tgtStaking), 1e18);
+        tgtStaking.deposit(1e18);
+        vm.stopPrank();
+
+        vm.startPrank(signer);
+
+        console.log("Sending 10 USDC tokens for rewards");
+        usdc.transfer(address(tgtStaking), 10e6);
+
+        (uint256 userBalanceBefore,) = tgtStaking.getUserInfo(signer, IERC20Upgradeable(address(usdc)));
+        console.log("Deposited TGT balance before restaking: %s", userBalanceBefore);
+
+        console.log("USDC balance of user before restaking: %s", usdc.balanceOf(signer));
+
+        uint256 usdcBalanceBefore = usdc.balanceOf(signer);
+        tgtStaking.restakeRewards();
+
+        (uint256 userBalanceAfter,) = tgtStaking.getUserInfo(signer, IERC20Upgradeable(address(usdc)));
+        console.log("Deposited TGT balance after restaking: %s", userBalanceAfter);
+
+        console.log("USDC balance of user after restaking: %s", usdc.balanceOf(signer));
+
+        //User balance should increase after restaking
+        assert(userBalanceAfter > userBalanceBefore);
+        assert(usdc.balanceOf(signer) == usdcBalanceBefore);
+        assert(tgtStaking.pendingReward(signer, IERC20Upgradeable(address(usdc))) == 0);
+
+        assert(tgtStaking.pendingReward(secondSigner, IERC20Upgradeable(address(usdc))) > 0);
+        (uint256 secondUserBalanceAfter,) = tgtStaking.getUserInfo(secondSigner, IERC20Upgradeable(address(usdc)));
+        assert(secondUserBalanceAfter == 1e18);
+
         vm.stopPrank();
     }
 
