@@ -12,7 +12,6 @@ import {TransferHelper} from '@uniswap/v3-periphery/contracts/libraries/Transfer
 import {SafeMathUpgradeable} from "./libraries/SafeMathUpgradeable.sol";
 import {SafeERC20Upgradeable} from "./libraries/SafeERC20Upgradeable.sol";
 import {IERC20Upgradeable} from "./libraries/IERC20Upgradeable.sol";
-import "../lib/forge-std/src/console.sol";
 
 //import "hardhat/console.sol";
 //import "forge-std/console.sol";
@@ -433,9 +432,6 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
         if (_rewardBalance == lastRewardBalance[_token] || _totalTgt == 0) {
             return;
         }
-        console.log("Updating reward for token: %s", address(_token));
-        console.log("Current reward balance: %s", _rewardBalance);
-        console.log("Last reward balance: %s", lastRewardBalance[_token]);
 
         uint256 _accruedReward = _rewardBalance.sub(lastRewardBalance[_token]);
 
