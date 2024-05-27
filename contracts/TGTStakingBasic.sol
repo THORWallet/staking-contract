@@ -205,6 +205,8 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
         if (transferRequired) {
             if (_fee > 0) tgt.safeTransferFrom(_user, feeCollector, _fee);
             if (_amountMinusFee > 0) tgt.safeTransferFrom(_user, address(this), _amountMinusFee);
+        } else {
+            if (_fee > 0) tgt.safeTransfer( feeCollector, _fee);
         }
 
         emit Deposit(_user, _amountMinusFee, _fee);
@@ -218,16 +220,15 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
         for (uint256 i = 0; i < rewardTokens.length; i++) {
             IERC20Upgradeable _token = rewardTokens[i];
             address userAddress = _msgSender();
+            _updateReward(_token);
+
             uint256 _pending = pendingReward(userAddress, _token);
             if (_pending > 0) {
-
-                //updates swapped pending reward to users reward debt to prevent double claiming
-                _updateReward(_token);
-
                 uint256 swappedAmount = _swapToTgt(_pending, _token);
 
                 UserInfo storage user = userInfo[userAddress];
                 user.rewardDebt[_token] = user.amount.mul(accRewardPerShare[_token]).div(ACC_REWARD_PER_SHARE_PRECISION);
+                lastRewardBalance[_token] -= _pending;
 
                 //restakes the swapped TGT
                 _deposit(swappedAmount, userAddress, false);
@@ -436,10 +437,7 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
         console.log("Current reward balance: %s", _rewardBalance);
         console.log("Last reward balance: %s", lastRewardBalance[_token]);
 
-        uint256 _accruedReward = 0;
-        if (_rewardBalance > lastRewardBalance[_token]) {
-            _accruedReward = _rewardBalance.sub(lastRewardBalance[_token]);
-        }
+        uint256 _accruedReward = _rewardBalance.sub(lastRewardBalance[_token]);
 
         accRewardPerShare[_token] = accRewardPerShare[_token].add(
             _accruedReward.mul(ACC_REWARD_PER_SHARE_PRECISION).div(_totalTgt)
