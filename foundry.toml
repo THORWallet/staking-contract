@@ -11,5 +11,5 @@ sender = "0xA0FCc0Ef2E8624797Ff20c38725748024bca67A3"
 fs_permissions = [{ access = "read", path = "./" }]
 
 [rpc_endpoints]
-arbitrumFork = 'https://virtual.arbitrum.rpc.tenderly.co/'
+arbitrumFork = 'https://virtual.arbitrum.rpc.tenderly.co/${TENDERLY_VIRTUAL_RPC}'
 arbitrum = 'https://arb1.arbitrum.io/rpc'

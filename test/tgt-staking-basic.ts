@@ -4,7 +4,7 @@ import {expect} from "chai";
 import {describe} from "mocha";
 import hre = require("hardhat");
 
-describe("TGT Staking Basic", function () {
+describe.only("TGT Staking Basic", function () {
     before(async function () {
         this.stakingCF = await ethers.getContractFactory(
             "TGTStakingBasic"

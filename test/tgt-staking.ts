@@ -1957,7 +1957,7 @@ describe("TGT Staking", function () {
 
         });
 
-        it.only("Auto staking", async function () {
+        it("Auto staking", async function () {
 
             const {
                 tgtStakingBasic,

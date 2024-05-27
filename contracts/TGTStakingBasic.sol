@@ -12,6 +12,7 @@ import {TransferHelper} from '@uniswap/v3-periphery/contracts/libraries/Transfer
 import {SafeMathUpgradeable} from "./libraries/SafeMathUpgradeable.sol";
 import {SafeERC20Upgradeable} from "./libraries/SafeERC20Upgradeable.sol";
 import {IERC20Upgradeable} from "./libraries/IERC20Upgradeable.sol";
+import "../lib/forge-std/src/console.sol";
 
 //import "hardhat/console.sol";
 //import "forge-std/console.sol";
@@ -220,10 +221,10 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
             uint256 _pending = pendingReward(userAddress, _token);
             if (_pending > 0) {
 
-                uint256 swappedAmount = _swapToTgt(_pending, _token);
-
                 //updates swapped pending reward to users reward debt to prevent double claiming
                 _updateReward(_token);
+
+                uint256 swappedAmount = _swapToTgt(_pending, _token);
 
                 UserInfo storage user = userInfo[userAddress];
                 user.rewardDebt[_token] = user.amount.mul(accRewardPerShare[_token]).div(ACC_REWARD_PER_SHARE_PRECISION);
@@ -431,8 +432,14 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
         if (_rewardBalance == lastRewardBalance[_token] || _totalTgt == 0) {
             return;
         }
+        console.log("Updating reward for token: %s", address(_token));
+        console.log("Current reward balance: %s", _rewardBalance);
+        console.log("Last reward balance: %s", lastRewardBalance[_token]);
 
-        uint256 _accruedReward = _rewardBalance.sub(lastRewardBalance[_token]);
+        uint256 _accruedReward = 0;
+        if (_rewardBalance > lastRewardBalance[_token]) {
+            _accruedReward = _rewardBalance.sub(lastRewardBalance[_token]);
+        }
 
         accRewardPerShare[_token] = accRewardPerShare[_token].add(
             _accruedReward.mul(ACC_REWARD_PER_SHARE_PRECISION).div(_totalTgt)
