@@ -95,7 +95,6 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
     mapping(address => UserInfo) private userInfo;
 
     ISwapRouter public constant swapRouter = ISwapRouter(0xE592427A0AEce92De3Edee1F18E0157C05861564);
-//    IUniversalRouter  public constant universalRouter = IUniversalRouter(0x5e325eda8064b456f4781070c0738d849c824258);
     uint24 public constant poolFee = 500;
     address public constant WETH = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
 
