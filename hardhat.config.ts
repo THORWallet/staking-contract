@@ -11,6 +11,8 @@ require('catapulta/hardhat');
 require('@nomicfoundation/hardhat-verify');
 require('@openzeppelin/hardhat-upgrades');
 require("@nomicfoundation/hardhat-foundry");
+require("@nomicfoundation/hardhat-ledger");
+
 import {task} from "hardhat/config";
 import "./tasks/bridge-bot";
 import "./tasks/bridge-tx";
@@ -100,8 +102,20 @@ module.exports = {
             maxFeePerGas: 2000000000,
             maxPriorityFeePerGas: 1500000000
         },
+        arbitrumLedger: {
+            url: "https://arb1.arbitrum.io/rpc",
+            ledgerAccounts: [
+                "0xCF23e5020497cE7129c02041FCceF9A0BA5e6554",
+            ],
+            chainId: 42161,
+            maxFeePerGas: 2000000000,
+            maxPriorityFeePerGas: 1500000000
+        },
         virtualArbitrumOne: {
-                url: "https://virtual.arbitrum.rpc.tenderly.co/" + process.env.TENDERLY_VIRTUAL_RPC,
+            url: "https://virtual.arbitrum.rpc.tenderly.co/" + process.env.TENDERLY_VIRTUAL_RPC,
+            accounts: {
+                mnemonic: process.env.MNEMONIC
+            },
         },
     },
     solidity: {

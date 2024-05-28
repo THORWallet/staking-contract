@@ -1,5 +1,5 @@
 /*
-  yarn deploy --script deploy-staking-joe-fork.js
+  yarn deploy --script upgrade-tgtstakingbasic-arbitrum.js --network arbitrumLedger
 */
 
 
