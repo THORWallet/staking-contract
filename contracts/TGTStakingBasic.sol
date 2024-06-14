@@ -132,6 +132,11 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
         reentrant = false;
     }
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
     /**
      * @notice Initialize a new TGTStakingBasic contract
      * @dev This contract needs to receive an ERC20 `_rewardToken` in order to distribute them
@@ -204,7 +209,7 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
             if (_fee > 0) tgt.safeTransferFrom(_user, feeCollector, _fee);
             if (_amountMinusFee > 0) tgt.safeTransferFrom(_user, address(this), _amountMinusFee);
         } else {
-            if (_fee > 0) tgt.safeTransfer( feeCollector, _fee);
+            if (_fee > 0) tgt.safeTransfer(feeCollector, _fee);
         }
 
         emit Deposit(_user, _amountMinusFee, _fee);

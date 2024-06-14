@@ -117,6 +117,12 @@ module.exports = {
                 mnemonic: process.env.MNEMONIC
             },
         },
+        arbUpgradeFork: {
+            url: "https://virtual.arbitrum.rpc.tenderly.co/" + process.env.TENDERLY_ARB_UPGRADE,
+            accounts: {
+                mnemonic: process.env.MNEMONIC
+            },
+        },
     },
     solidity: {
         compilers: [{

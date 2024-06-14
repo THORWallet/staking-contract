@@ -1,0 +1,10 @@
+{
+  "tokenIn": "0xaf88d065e77c8cC2239327C5EDb3A432268e5831",
+  "tokenOut": "0x429fEd88f10285E61b12BDF00848315fbDfCC341",
+  "fee": 500,
+  "recipient": "0xA0FCc0Ef2E8624797Ff20c38725748024bca67A3",
+  "deadline": 1715343273,
+  "amountIn": 1000,
+  "amountOutMinimum": 0,
+  "sqrtPriceLimitX96": 0
+}

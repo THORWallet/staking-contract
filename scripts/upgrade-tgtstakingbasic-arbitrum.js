@@ -23,6 +23,8 @@ async function main() {
 
     const TGTStakingBasic = await ethers.getContractFactory("TGTStakingBasic");
 
+    const snapshotId = await hre.network.provider.send("evm_snapshot");
+    console.log(`Snapshot taken with id: ${snapshotId}`);
 
     const tgtStaking = await upgrades.forceImport(
         tgtStakingProxy,
@@ -47,6 +49,8 @@ async function main() {
 
     console.log("Staking contract was verified successfully")
 
+    //Revert to snapshot to test the upgrade again
+    await hre.network.provider.send("evm_revert", [snapshotId]);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
