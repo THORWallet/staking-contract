@@ -219,7 +219,7 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
     *
     @notice Swaps reward tokens to TGT and restakes them
     */
-    function restakeRewards() external {
+    function restakeRewards() external nonReentrant {
         for (uint256 i = 0; i < rewardTokens.length; i++) {
             IERC20Upgradeable _token = rewardTokens[i];
             address userAddress = _msgSender();
@@ -327,7 +327,7 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
      * @param _depositFeePercent The new deposit fee percent
      */
     function setDepositFeePercent(uint256 _depositFeePercent) external onlyOwner {
-        require(_depositFeePercent <= 5e17, "TGTStakingBasic: deposit fee can't be greater than 50%");
+        require(_depositFeePercent <= 1e17, "TGTStakingBasic: deposit fee can't be greater than 10%");
         uint256 oldFee = depositFeePercent;
         depositFeePercent = _depositFeePercent;
         emit DepositFeeChanged(_depositFeePercent, oldFee);

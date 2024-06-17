@@ -19,6 +19,11 @@ async function main() {
 
     const signers = await ethers.getSigners();
     const deployer = signers[0];
+
+    //these are two random depositors to the pending rewards are the same after the upgrade
+    const alice = "0x55459ec19cf863732532795525d03a61089819ed";
+    const bob = "0x012Ab5Affb6dB7EA90E89fa7d59445673840e5dc";
+
     console.log('Deployer address: ' + (await deployer.getAddress()));
 
     const TGTStakingBasic = await ethers.getContractFactory("TGTStakingBasic");
@@ -32,6 +37,9 @@ async function main() {
         {kind: 'transparent'}
     )
 
+    console.log("Pending reward balance for Alice: ", utils.formatUnits(await tgtStaking.pendingReward(alice, usdcAddress), 6));
+    console.log("Pending reward balance for Bob: ", utils.formatUnits(await tgtStaking.pendingReward(bob, usdcAddress), 6));
+
     await upgrades.upgradeProxy(
         tgtStakingProxy,
         TGTStakingBasic,
@@ -39,6 +47,9 @@ async function main() {
     );
 
     console.log("TGT Staking upgraded to:", await tgtStaking.address);
+
+    console.log("Pending reward balance for Alice: ", utils.formatUnits(await tgtStaking.pendingReward(alice, usdcAddress), 6));
+    console.log("Pending reward balance for Bob: ", utils.formatUnits(await tgtStaking.pendingReward(bob, usdcAddress), 6));
 
     //delay for 15 seconds
     await new Promise(resolve => setTimeout(resolve, 15000));
