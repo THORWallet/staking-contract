@@ -219,7 +219,7 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
     *
     @notice Swaps reward tokens to TGT and restakes them
     */
-    function restakeRewards() external nonReentrant {
+    function restakeRewards(uint256[] memory priceQuotes) external nonReentrant {
         for (uint256 i = 0; i < rewardTokens.length; i++) {
             IERC20Upgradeable _token = rewardTokens[i];
             address userAddress = _msgSender();
@@ -227,7 +227,7 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
 
             uint256 _pending = pendingReward(userAddress, _token);
             if (_pending > 0) {
-                uint256 swappedAmount = _swapToTgt(_pending, _token);
+                uint256 swappedAmount = _swapToTgt(_pending, _token, priceQuotes[i]);
 
                 UserInfo storage user = userInfo[userAddress];
                 user.rewardDebt[_token] = user.amount.mul(accRewardPerShare[_token]).div(ACC_REWARD_PER_SHARE_PRECISION);
@@ -244,7 +244,7 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
     * @param _amount The amount of reward token to swap
     * @param _token The address of the reward token
     */
-    function _swapToTgt(uint256 _amount, IERC20Upgradeable _token) internal returns (uint256){
+    function _swapToTgt(uint256 _amount, IERC20Upgradeable _token, uint256 priceQuote) internal returns (uint256){
         // msg.sender must approve this contract
 
 //         Approve the router to spend reward token.
@@ -258,7 +258,7 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
             recipient: address(this),
             deadline: block.timestamp,
             amountIn: _amount,
-            amountOutMinimum: 0
+            amountOutMinimum: priceQuote - (priceQuote / 20) // 5% slippage allowed
         });
 
         uint256 amountOut = swapRouter.exactInput(hopParams);

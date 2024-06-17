@@ -7,6 +7,7 @@ import {USDC} from "../contracts/mocks/USDC.sol";
 import {MockTGT} from "../contracts/mocks/MockTGT.sol";
 import {Upgrades} from "openzeppelin-foundry-upgrades/Upgrades.sol";
 import {IERC20Upgradeable} from "../contracts/libraries/IERC20Upgradeable.sol";
+import {IQuoter} from "@uniswap/v3-periphery/contracts/interfaces/IQuoter.sol";
 
 contract StakingTest is Test {
 
@@ -17,6 +18,10 @@ contract StakingTest is Test {
     uint pk = vm.envUint("ARBITRUM_PRIVATE_KEY");
     address signer = vm.addr(pk);
     address secondSigner = vm.addr(pk + 1);
+    IQuoter public quoter = IQuoter(0xb27308f9F90D607463bb33eA1BeBb41C27CE5AB6);
+    uint24 public constant poolFee = 500;
+    address public constant WETH = 0x82aF49447D8a07e3bd95BD0d56f35241523fBab1;
+    bytes path;
 
     function setUp() public {
 
@@ -31,6 +36,9 @@ contract StakingTest is Test {
         );
 
         tgtStaking = TGTStakingBasic(stakingProxy);
+
+        path = abi.encodePacked(address(usdc), poolFee, WETH, poolFee, address(tgt));
+
     }
 
     function test_Deposit() public {
@@ -89,7 +97,9 @@ contract StakingTest is Test {
         console.log("USDC balance of user before restaking: %s", usdc.balanceOf(signer));
 
         uint256 usdcBalanceBefore = usdc.balanceOf(signer);
-        tgtStaking.restakeRewards();
+        uint256[] memory quotes = new uint256[](1);
+        quotes[0] = quoter.quoteExactInput(path, tgtStaking.pendingReward(signer, IERC20Upgradeable(address(usdc))));
+        tgtStaking.restakeRewards(quotes);
 
         (uint256 userBalanceAfter,) = tgtStaking.getUserInfo(signer, IERC20Upgradeable(address(usdc)));
         console.log("Deposited TGT balance after restaking: %s", userBalanceAfter);
@@ -128,7 +138,9 @@ contract StakingTest is Test {
         console.log("USDC balance of user before restaking: %s", usdc.balanceOf(signer));
 
         uint256 usdcBalanceBefore = usdc.balanceOf(signer);
-        tgtStaking.restakeRewards();
+        uint256[] memory quotes = new uint256[](1);
+        quotes[0] = quoter.quoteExactInput(path, tgtStaking.pendingReward(signer, IERC20Upgradeable(address(usdc))));
+        tgtStaking.restakeRewards(quotes);
 
         (uint256 userBalanceAfter,) = tgtStaking.getUserInfo(signer, IERC20Upgradeable(address(usdc)));
         console.log("Deposited TGT balance after restaking: %s", userBalanceAfter);

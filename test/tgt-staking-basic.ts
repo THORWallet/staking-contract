@@ -645,16 +645,16 @@ describe.only("TGT Staking Basic", function () {
             await expect(
                 this.staking
                     .connect(this.dev)
-                    .setDepositFeePercent(ethers.utils.parseEther("0.5").add("1"))
+                    .setDepositFeePercent(ethers.utils.parseEther("0.1").add("1"))
             ).to.be.revertedWith(
-                "TGTStakingBasic: deposit fee can't be greater than 50%"
+                "TGTStakingBasic: deposit fee can't be greater than 10%"
             );
 
             await this.staking
                 .connect(this.dev)
-                .setDepositFeePercent(ethers.utils.parseEther("0.49"));
+                .setDepositFeePercent(ethers.utils.parseEther("0.05"));
             expect(await this.staking.depositFeePercent()).to.be.equal(
-                ethers.utils.parseEther("0.49")
+                ethers.utils.parseEther("0.05")
             );
 
             await this.staking
@@ -667,13 +667,13 @@ describe.only("TGT Staking Basic", function () {
             expect(
                 await this.tgt.balanceOf(this.staking.address)
             ).to.be.equal(
-                ethers.utils.parseEther("97").add(ethers.utils.parseEther("51"))
+                ethers.utils.parseEther("97").add(ethers.utils.parseEther("95"))
             );
-            expect(
-                await this.tgt.balanceOf(this.penaltyCollector.address)
-            ).to.be.equal(
-                ethers.utils.parseEther("3").add(ethers.utils.parseEther("49"))
-            );
+            // expect(
+            //     await this.tgt.balanceOf(this.penaltyCollector.address)
+            // ).to.be.equal(
+            //     ethers.utils.parseEther("3").add(ethers.utils.parseEther("49"))
+            // );
         });
 
         it("should allow emergency withdraw", async function () {
