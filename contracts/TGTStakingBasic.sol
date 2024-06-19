@@ -260,7 +260,7 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
             recipient: address(this),
             deadline: block.timestamp,
             amountIn: _amount,
-            amountOutMinimum: priceQuote - (priceQuote / 20) // 5% slippage allowed
+            amountOutMinimum: priceQuote
         });
 
         uint256 amountOut = swapRouter.exactInput(hopParams);
