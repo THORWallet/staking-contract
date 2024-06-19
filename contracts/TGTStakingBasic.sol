@@ -222,19 +222,21 @@ contract TGTStakingBasic is Initializable, OwnableUpgradeable {
     function restakeRewards(uint256[] memory priceQuotes) external nonReentrant {
         for (uint256 i = 0; i < rewardTokens.length; i++) {
             IERC20Upgradeable _token = rewardTokens[i];
-            address userAddress = _msgSender();
-            _updateReward(_token);
+            if (address(_token) != address(tgt)) {
+                address userAddress = _msgSender();
+                _updateReward(_token);
 
-            uint256 _pending = pendingReward(userAddress, _token);
-            if (_pending > 0) {
-                uint256 swappedAmount = _swapToTgt(_pending, _token, priceQuotes[i]);
+                uint256 _pending = pendingReward(userAddress, _token);
+                if (_pending > 0) {
+                    uint256 swappedAmount = _swapToTgt(_pending, _token, priceQuotes[i]);
 
-                UserInfo storage user = userInfo[userAddress];
-                user.rewardDebt[_token] = user.amount.mul(accRewardPerShare[_token]).div(ACC_REWARD_PER_SHARE_PRECISION);
-                lastRewardBalance[_token] -= _pending;
+                    UserInfo storage user = userInfo[userAddress];
+                    user.rewardDebt[_token] = user.amount.mul(accRewardPerShare[_token]).div(ACC_REWARD_PER_SHARE_PRECISION);
+                    lastRewardBalance[_token] -= _pending;
 
-                //restakes the swapped TGT
-                _deposit(swappedAmount, userAddress, false);
+                    //restakes the swapped TGT
+                    _deposit(swappedAmount, userAddress, false);
+                }
             }
         }
     }
