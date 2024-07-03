@@ -20,7 +20,7 @@ async function main() {
     const signers = await ethers.getSigners();
     const deployer = signers[0];
 
-    //these are two random depositors to the pending rewards are the same after the upgrade
+    //these are two random depositors to check the pending rewards are the same after the upgrade
     const alice = "0x55459ec19cf863732532795525d03a61089819ed";
     const bob = "0x012Ab5Affb6dB7EA90E89fa7d59445673840e5dc";
 
@@ -28,8 +28,8 @@ async function main() {
 
     const TGTStakingBasic = await ethers.getContractFactory("TGTStakingBasic");
 
-    const snapshotId = await hre.network.provider.send("evm_snapshot");
-    console.log(`Snapshot taken with id: ${snapshotId}`);
+    // const snapshotId = await hre.network.provider.send("evm_snapshot");
+    // console.log(`Snapshot taken with id: ${snapshotId}`);
 
     const tgtStaking = await upgrades.forceImport(
         tgtStakingProxy,
@@ -60,8 +60,8 @@ async function main() {
 
     console.log("Staking contract was verified successfully")
 
-    //Revert to snapshot to test the upgrade again
-    await hre.network.provider.send("evm_revert", [snapshotId]);
+    // Revert to snapshot to test the upgrade again
+    // await hre.network.provider.send("evm_revert", [snapshotId]);
 }
 
 // We recommend this pattern to be able to use async/await everywhere
